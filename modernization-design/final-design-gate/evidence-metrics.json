@@ -1,0 +1,55 @@
+{
+  "generated_at_note": "Generation time intentionally omitted for reproducibility.",
+  "canonical_source": "src/ (read-only)",
+  "offline_sql": "docs/database-audit/u410970153_eujobbd.sql (read-only)",
+  "sql_sha256": "d6b2c811cc456dd545ab3cf2578e6c45f713f89d262426f5c18fb5e5d660f2e8",
+  "tables": 90,
+  "columns": 1245,
+  "parsed_insert_rows": 1090286,
+  "declared_fk_constraints": 9,
+  "logical_relationships": 151,
+  "bread_data_types": 47,
+  "roles": 13,
+  "permissions": 246,
+  "role_grants": 714,
+  "db_reports": 17,
+  "print_outputs": 6,
+  "legacy_report_rows": 8,
+  "decisions": {
+    "ARCHIVE": 8,
+    "IGNORE": 12,
+    "KEEP": 70,
+    "MERGE": 1,
+    "SPLIT": 0
+  },
+  "decision_changes_from_prior_version": [
+    "candidates: SPLIT -> KEEP (no physical split permitted in initial migration; Rule 3 + explicit sponsor instruction)",
+    "professional_certificates: KEEP -> ARCHIVE (0 rows, no model, no controller, no BREAD; planned but abandoned feature; DDL preserved as evidence)"
+  ],
+  "candidate_count_verification": {
+    "insert_statements": 29,
+    "row_tuples": 1679,
+    "duplicate_ids": 0,
+    "id_min": 18,
+    "id_max": 4634,
+    "auto_increment": 4635,
+    "candidate_columns": 79,
+    "column_count_error_corrected": "Narrative text in several artifacts incorrectly stated 55 columns; CREATE TABLE DDL and column-mapping.csv both confirm 79; corrected in revision 2",
+    "row_count_1679_origin": "Direct per-block count of data lines across all 29 multi-line INSERT blocks in dump (lines 5172-6879)",
+    "dump_sha256": "D6B2C811CC456DD545AB3CF2578E6C45F713F89D262426F5C18FB5E5D660F2E8",
+    "counting_method": "PowerShell: for each INSERT header line, count subsequent lines beginning with '(' until next INSERT/CREATE/blank block; sum = 1679"
+  },
+  "open_approvals": 20,
+  "hard_gate_approvals": ["A01", "A02"],
+  "mandatory_project_rules": 8,
+  "unverified_categories": [
+    "Legacy application timezone/DST interpretation",
+    "Operational actor/prerequisite ownership for candidate transitions",
+    "Physical file inventory, roots, MIME/size/checksum and retention",
+    "Authoritative finance backup/deduplication policy",
+    "Row scopes for Voyager dynamic routes and reports",
+    "Business meaning of undocumented tables/columns beyond source evidence",
+    "Status-domain completeness until distinct-value profiling is approved",
+    "Report ownership and inactive/metadata-only disposition"
+  ]
+}

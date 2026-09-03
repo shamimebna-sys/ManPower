@@ -1,0 +1,139 @@
+name: CI
+
+# Use this copy only if `platform/` is the Git repository root.
+# The monorepo workflow lives at `/.github/workflows/ci.yml`.
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  NODE_ENV: test
+  CORS_ORIGINS: http://localhost:3000
+  LOG_LEVEL: info
+  NEXT_PUBLIC_API_URL: http://localhost:4000
+
+jobs:
+  static:
+    name: BUILD/STATIC — lint · typecheck · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+          run_install: false
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm db:generate
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      - name: Lint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Build API
+        run: pnpm --filter api build
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      - name: Build Web
+        run: pnpm --filter web build
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_API_URL: https://api.example.com
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+
+  unit:
+    name: UNIT — API + web (no database)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+          run_install: false
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm db:generate
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      - name: Unit tests
+        run: pnpm test
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+          RUN_DB_TESTS: 'false'
+
+  postgres16-integration:
+    name: INTEGRATION — PostgreSQL 16
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: manpower_ci
+          POSTGRES_PASSWORD: manpower_ci_password
+          POSTGRES_DB: manpower_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U manpower_ci -d manpower_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://manpower_ci:manpower_ci_password@localhost:5432/manpower_ci
+      RUN_DB_TESTS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10'
+          run_install: false
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Fail unless SELECT version() is PostgreSQL 16
+        env:
+          PGPASSWORD: manpower_ci_password
+        run: |
+          VERSION=$(psql -h localhost -U manpower_ci -d manpower_ci -tAc "SELECT version();")
+          echo "PostgreSQL version: $VERSION"
+          echo "$VERSION" | grep -E 'PostgreSQL 16\.'
+          echo "$VERSION" | grep -E 'PostgreSQL 1[78]' && exit 1 || true
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Prisma generate
+        run: pnpm db:generate
+      - name: Prisma migrate deploy (existing target migrations)
+        run: pnpm --filter api db:migrate:deploy
+      - name: Record applied migrations
+        env:
+          PGPASSWORD: manpower_ci_password
+        run: psql -h localhost -U manpower_ci -d manpower_ci -c "SELECT migration_name, finished_at FROM _prisma_migrations ORDER BY finished_at;"
+      - name: Integration + unit tests against PostgreSQL 16
+        run: pnpm test
+      - name: Lint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Build
+        run: pnpm build
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_API_URL: https://api.example.com

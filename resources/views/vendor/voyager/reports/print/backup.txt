@@ -1,0 +1,24 @@
+<td style="display:none; border: none; width: 33%">
+                <table>
+                    <tr style="background: #0d194b; color: white">
+                        <td style="color: white; font-weight: bold">INVOICE</td>
+                        <td style="color: white; font-weight: bold">DATE</td>
+                    </tr>
+                    <tr >
+                        <td >{{$data->invoice_no}}</td>
+                        <td >{{$data->invoice_date}}</td>
+                    </tr>
+                </table>
+
+
+                <table>
+                    <tr style="background: #0d194b; color: white">
+                        <td style="color: white; font-weight: bold">CUSTOMER ID</td>
+                        <td style="color: white; font-weight: bold">TERMS</td>
+                    </tr>
+                    <tr >
+                        <td >{{$data->bill_to_code}}</td>
+                        <td >{{$data->bill_to_terms}}</td>
+                    </tr>
+                </table>
+            </td>

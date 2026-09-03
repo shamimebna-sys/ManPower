@@ -1,0 +1,142 @@
+{{--@extends('voyager::master')
+
+@section('content')--}}
+<style>
+    #myModal .modal-body {
+        color: black;
+    }
+
+</style>
+<div class="panel panel-bordered" style="padding-bottom:5px;">
+    <form action="" method="post" id="approval_form">
+        @csrf
+        <div class="row">
+            <div class="col-md-8">
+                <div class="row">
+                    <div class="col-md-12">
+                        <!-- form start -->
+                        <div class="panel-heading" style="border-bottom:0;">
+                            <h3 class="panel-title">Candidate</h3>
+                        </div>
+                        <div class="panel-body" style="padding-top:0;">
+                            <p>({{$data->code}}) {{$data->name}}</p>
+                        </div><!-- panel-body -->
+                    </div>
+
+
+
+                    <div class="col-md-4">
+                        <div class="panel-heading" style="border-bottom:0;">
+                            <h3 class="panel-title">Email</h3>
+                        </div>
+                        <div class="panel-body" style="padding-top:0;">
+                            {{$data->email}}
+                        </div><!-- panel-body -->
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="panel-heading" style="border-bottom:0;">
+                            <h3 class="panel-title">Mobile</h3>
+                        </div>
+                        <div class="panel-body" style="padding-top:0;">
+                            <p> {{$data->mobile}}</p>
+                        </div><!-- panel-body -->
+                    </div>
+
+
+                    <div class="col-md-4">
+                        <div class="panel-heading" style="border-bottom:0;">
+                            <h3 class="panel-title">Passport No.</h3>
+                        </div>
+                        <div class="panel-body" style="padding-top:0;">
+                            <p> {{$data->passport_no}}</p>
+                        </div><!-- panel-body -->
+                    </div>
+
+
+
+                    <div class="col-md-4">
+                        <div class="panel-heading" style="border-bottom:0;">
+                            <h3 class="panel-title">Status</h3>
+                        </div>
+                        <div class="panel-body" style="padding-top:0;">
+                            {!! \App\Helpers\CommonClass::getPaymentStatus($data->status) !!}
+                        </div><!-- panel-body -->
+                    </div>
+
+                    <div class="col-md-8">
+                        <div class="panel-heading" style="border-bottom:0;">
+                            <h3 class="panel-title">Remarks</h3>
+                        </div>
+                        <div class="panel-body form-group" style="padding-top:0;">
+                            <p>
+                                @if($data->status=='P')
+                                    <input type="text" class="form-control" name="remarks" required value="{{$data->remarks}}">
+                                @else
+                                    {{$data->remarks}}
+                                @endif
+                            </p>
+                        </div><!-- panel-body -->
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-md-4">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="panel-body" style="padding-top:0;">
+                            <img src="{{Voyager::image($data->half_photo_file_path)}}" style="width: 200px"/>
+                        </div><!-- panel-body -->
+                    </div>
+                </div>
+            </div>
+
+            @if($data->status=='P')
+                <div class="col-md-12">
+                    <hr style="margin:0;">
+
+                    <div class="panel-body" style="padding-top:0;">
+                        <button type="button" class="btn btn-sm btn-primary pull-right edit" onclick="submitForm('{{$data->id}}','A')">
+                            Approved
+                        </button>
+                        &nbsp;
+
+                        <button type="button" class="btn btn-sm btn-danger pull-right edit" onclick="submitForm('{{$data->id}}','R')">
+                            Rejected
+                        </button>
+                    </div><!-- panel-body -->
+                </div>
+            @endif
+
+
+        </div>
+    </form>
+</div><!-- table-responsive -->
+
+{{--@stop--}}
+
+<script>
+    function submitForm(id, status){
+        var data = $('#approval_form').serialize()+'&status='+status;
+        $.ajax({
+            url:  "{{url('/panel/ajax/candidate-approval')}}/"+id,
+            type:"POST",
+            data: data,
+            beforeSend: function() {
+                $('#approval_form button[type="button"]').prop('disabled', true);
+            },
+            success:function(res){
+                if(res.status){
+                    toastr.success(res.msg);
+                    $('body .close').trigger('click');
+
+                }else{
+                    toastr.error(res.msg);
+                }
+                $('#approval_form button[type="button"]').prop('disabled', false);
+            },
+        });
+    }
+
+</script>

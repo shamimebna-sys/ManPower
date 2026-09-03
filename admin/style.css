@@ -1,0 +1,123 @@
+.voyager .navbar-top {
+    background: white !important;
+}
+
+.voyager .navbar-top .nav>li>a {
+    overflow: unset;
+}
+.voyager  .profile .dropdown-toggle{
+    /*width: 25%;*/
+}
+
+/*.nav>li, .nav>li>a {*/
+/*    display: inline-table;*/
+/*    position: relative;*/
+/*}*/
+.voyager  .navbar  .dropdown.profile .dropdown-menu {
+    position: absolute !important;
+}
+.voyager .profile  ul{
+    margin-left: -200px !important;
+}
+    /* Notification Icon Styling */
+.notification-icon {
+    font-size: 25px;
+    color: #58595f;
+    transition: transform 0.3s ease-in-out, color 0.3s ease-in-out;
+}
+
+.notification-container:hover .notification-icon {
+    transform: scale(1.2);
+    color: #ffcc00;
+    position: unset;
+}
+
+/* ✨ Attractive Notification Badge */
+.notification-badge {
+    position: absolute;
+    top: 2px;
+    right: -5px;
+    background: linear-gradient(135deg, #ff4b1f, #ff9068);
+    color: white;
+    font-size: 10px;
+    font-weight: normal;
+    padding: 5px 8px;
+    border-radius: 50%;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+    line-height: 1;
+    min-width: 10px;
+    text-align: center;
+    border: 1px solid white;
+    transition: transform 0.2s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+/* 🎭 Bouncing & Glowing Animation */
+@keyframes pulse {
+    0% { box-shadow: 0 0 5px rgba(255, 0, 0, 0.8); }
+    50% { box-shadow: 0 0 15px rgba(255, 0, 0, 1); }
+    100% { box-shadow: 0 0 5px rgba(255, 0, 0, 0.8); }
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+/* 🌟 Apply the animations */
+.animate-pulse {
+    animation: pulse 1.5s infinite, bounce 1s infinite;
+}
+
+/* 🚀 Hide badge if count is 0 */
+.notification-badge:empty {
+    display: none;
+}
+
+
+/*****************************/
+form .help-block {
+    display: none !important;
+}
+.form-group label {
+    color: black !important;
+}
+form  .form-control {
+    border: 1px solid #76838f69 !important;
+    color: black;
+}
+form .select2-selection {
+    border: 1px solid #76838f69 !important;
+}
+
+form  .control-label{
+    color: black !important;
+}
+
+.page-title {
+    margin-top: 5px;
+    padding-top: 0;
+    height: auto;
+}
+
+.page-title > i {
+    top: 0;
+}
+
+
+tbody {
+    color: #000000;
+}
+
+
+input[type="file"] {
+    width: 100% !important;
+}
+
+[data-field-name="image"] {
+    display: flex;
+    justify-content: center;  /* Horizontally center */
+    align-items: center;      /* Vertically center */
+    height: 300px;            /* Adjust as needed */
+    border: 1px solid #ddd;
+}
+

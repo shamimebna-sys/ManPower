@@ -1,0 +1,59 @@
+version: '3.9'
+
+# =============================================================
+# ManPower Platform — Local Development Services
+# =============================================================
+# Prerequisites: Docker Desktop installed and running.
+# Download: https://www.docker.com/products/docker-desktop/
+#
+# Quick start:
+#   pnpm db:up       # Start PostgreSQL
+#   pnpm db:migrate  # Run Prisma migrations
+#   pnpm dev         # Start web + API
+#
+# IMPORTANT:
+# This is the NEW TARGET database (PostgreSQL) for the modern
+# platform. The legacy MariaDB/MySQL database in src/ is the
+# source system and must NEVER be run, modified, or connected
+# to during development.
+# =============================================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: manpower_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-manpower_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-manpower_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-manpower_dev}
+      # Explicitly set timezone
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Initialization scripts (run once on first container start)
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-manpower_user} -d ${POSTGRES_DB:-manpower_dev}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - manpower_net
+
+  # Future services (not yet active — added here as placeholders):
+  # redis:
+  #   image: redis:7-alpine
+  #   ...
+
+volumes:
+  postgres_data:
+    name: manpower_postgres_data
+
+networks:
+  manpower_net:
+    name: manpower_network

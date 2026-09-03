@@ -1,0 +1,52 @@
+{
+  "name": "api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ManPower Platform — Node.js REST API (Express + TypeScript + Prisma)",
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false src/index.ts",
+    "build": "node build.mjs",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src tests",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:push": "prisma db push",
+    "db:reset": "prisma migrate reset",
+    "db:studio": "prisma studio",
+    "db:bootstrap-admin": "tsx src/scripts/bootstrap-admin.ts",
+    "db:ensure-permissions": "tsx src/scripts/ensure-permissions.ts"
+  },
+  "dependencies": {
+    "@manpower/shared": "workspace:*",
+    "@prisma/client": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.0.0",
+    "pino": "^9.0.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/supertest": "^6.0.0",
+    "@vitest/coverage-v8": "^3.0.0",
+    "esbuild": "^0.28.2",
+    "pino-pretty": "^13.0.0",
+    "prisma": "^6.0.0",
+    "supertest": "^7.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vite-tsconfig-paths": "^5.0.0",
+    "vitest": "^3.0.0"
+  }
+}

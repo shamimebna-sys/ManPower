@@ -1,0 +1,117 @@
+/* ManPower Platform — Global Styles (M1 Foundation) */
+/* Business UI styles will be developed in M3+ per design approvals */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+    Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: #f8f9fa;
+  color: #212529;
+  min-height: 100vh;
+}
+
+a {
+  color: #0070f3;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.auth-page, .status-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.auth-card {
+  width: min(100%, 420px);
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 2rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.auth-card h1 { font-size: 1.4rem; }
+.auth-card p, .muted { color: #6c757d; }
+.auth-card label { display: grid; gap: .35rem; font-weight: 600; }
+.auth-card input {
+  padding: .7rem;
+  border: 1px solid #adb5bd;
+  border-radius: 4px;
+  font: inherit;
+}
+.auth-card button, .app-shell button {
+  padding: .7rem 1rem;
+  border: 0;
+  border-radius: 4px;
+  background: #0069d9;
+  color: white;
+  cursor: pointer;
+}
+.auth-card button:disabled { opacity: .65; cursor: wait; }
+.auth-error { color: #842029; background: #f8d7da; padding: .7rem; border-radius: 4px; }
+
+.app-shell header {
+  height: 64px;
+  padding: 0 2rem;
+  background: #1f2937;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.app-shell > main { max-width: 900px; margin: 3rem auto; padding: 0 1rem; }
+.app-shell dl { display: grid; grid-template-columns: 120px 1fr; gap: .5rem; margin: 2rem 0; }
+.app-shell dt { font-weight: 700; }
+.shell-loading { padding: 3rem; text-align: center; }
+.status-page { text-align: center; align-content: center; gap: .5rem; }
+.status-page h1 { font-size: 3rem; color: #adb5bd; }
+.app-nav { display: flex; gap: 1rem; align-items: center; }
+.app-nav a { color: white; }
+.app-shell main.wide { max-width: 1100px; }
+.page-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.filter-row { display: flex; gap: .75rem; margin: 1rem 0; }
+.filter-row input, .filter-row select, .candidate-form input, .candidate-form select {
+  padding: .6rem;
+  border: 1px solid #adb5bd;
+  border-radius: 4px;
+  font: inherit;
+}
+.filter-row input { flex: 1; }
+.candidate-form { display: grid; gap: .75rem; max-width: 640px; margin: 1.5rem 0; }
+.candidate-form label { display: grid; gap: .3rem; font-weight: 600; }
+.data-table { width: 100%; border-collapse: collapse; background: white; }
+.data-table th, .data-table td { padding: .7rem; border-bottom: 1px solid #dee2e6; text-align: left; }
+.pager { display: flex; gap: .75rem; margin: 1rem 0; }
+.button-link {
+  display: inline-block;
+  padding: .6rem 1rem;
+  background: #0069d9;
+  color: white;
+  border-radius: 4px;
+}
+.profile-panel { margin: 2.5rem 0 3rem; }
+.tab-row { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem 0; }
+.tab {
+  background: #e9ecef;
+  color: #212529;
+}
+.tab.active { background: #1f2937; color: white; }
+.plain-list { margin: 1rem 0 0 1.25rem; }
