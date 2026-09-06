@@ -1,13 +1,19 @@
 import { Router } from 'express';
 import type { Router as ExpressRouter, Request, Response } from 'express';
 import { z } from 'zod';
-import { AssignRoleSchema, CreateUserSchema, GrantPermissionSchema } from '@manpower/shared';
-import type { ApiResponse, MessageResult } from '@manpower/shared';
+import { AssignRoleSchema, CreateUserSchema, GrantPermissionSchema, UserBindingSchema } from '@manpower/shared';
+import type { ApiResponse, MessageResult, UserBindings } from '@manpower/shared';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth, requireCsrf, requirePermission } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { AUDIT_EVENTS, writeAuditEvent } from '../audit/audit.js';
 import { hashPassword } from '../auth/password.js';
+import {
+  assertBindingTargetExists,
+  assertExclusiveBinding,
+  bindingUpdate,
+  toUserBindings,
+} from '../recruitment/bindings.js';
 
 export const iamRouter: ExpressRouter = Router();
 
@@ -206,6 +212,62 @@ iamRouter.patch(
       success: true,
       data: { message: `Account status changed to ${status}` },
     };
+    res.status(200).json(body);
+  }
+);
+
+iamRouter.put(
+  '/users/:userId/bindings',
+  requirePermission('partners.user_binding.manage'),
+  async (req: Request, res: Response) => {
+    if (!req.auth) throw AppError.unauthorized();
+    const { userId } = IdParams.parse(req.params);
+    const input = UserBindingSchema.parse(req.body);
+    const updated = await prisma.$transaction(async (tx) => {
+      const current = await tx.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          agentId: true,
+          subAgentId: true,
+          agencierId: true,
+          companierId: true,
+          candidateId: true,
+          employerId: true,
+        },
+      });
+      if (!current) throw AppError.notFound('User');
+      const bindings = toUserBindings(current);
+      if (input.targetId) {
+        assertExclusiveBinding(bindings, input.domain, input.targetId);
+        await assertBindingTargetExists(tx, input.domain, input.targetId);
+      }
+      const user = await tx.user.update({
+        where: { id: userId },
+        data: bindingUpdate(input.domain, input.targetId),
+        select: {
+          agentId: true,
+          subAgentId: true,
+          agencierId: true,
+          companierId: true,
+          candidateId: true,
+          employerId: true,
+        },
+      });
+      await writeAuditEvent(
+        {
+          eventType: input.targetId ? AUDIT_EVENTS.USER_PARTNER_BOUND : AUDIT_EVENTS.USER_PARTNER_UNBOUND,
+          actorUserId: req.auth?.user.id,
+          targetType: 'user',
+          targetId: userId,
+          metadata: { domain: input.domain, bound: Boolean(input.targetId) },
+          request: req,
+        },
+        tx
+      );
+      return toUserBindings(user);
+    });
+    const body: ApiResponse<UserBindings> = { success: true, data: updated };
     res.status(200).json(body);
   }
 );

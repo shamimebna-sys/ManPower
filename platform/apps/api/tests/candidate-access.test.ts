@@ -13,6 +13,7 @@ const row = {
   agentId: BigInt(10),
   subAgentId: BigInt(4),
   agencierId: BigInt(2),
+  companierId: BigInt(7),
 };
 
 describe('A07 candidate row-scope helper', () => {
@@ -33,17 +34,28 @@ describe('A07 candidate row-scope helper', () => {
 
     expect(canAccessCandidateRow({ roles: ['sub_agent'], subAgentId: '4' }, row)).toBe(true);
     expect(canAccessCandidateRow({ roles: ['agency'], agencierId: '2' }, row)).toBe(true);
+    expect(canAccessCandidateRow({ roles: ['company'], companierId: '7' }, row)).toBe(true);
+    expect(canAccessCandidateRow({ roles: ['company'], companierId: '8' }, row)).toBe(false);
     expect(canAccessCandidateRow({ roles: ['candidate'], candidateId: row.id }, row)).toBe(true);
     expect(
       canAccessCandidateRow({ roles: ['candidate'], candidateId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' }, row)
     ).toBe(false);
   });
 
-  it('denies employer, company, teacher, and unresolved scoped roles without IDs', () => {
-    for (const key of ['employer', 'company', 'teacher', 'agent', 'sub_agent', 'agency', 'candidate']) {
+  it('denies employer, teacher, and unresolved scoped roles without IDs', () => {
+    for (const key of ['employer', 'teacher', 'agent', 'sub_agent', 'agency', 'company', 'candidate']) {
       expect(resolveCandidateAccess({ roles: [key] }).kind).toBe('none');
       expect(canAccessCandidateRow({ roles: [key] }, row)).toBe(false);
     }
+  });
+
+  it('scopes company to candidates.companier_id and keeps teacher blocked', () => {
+    expect(resolveCandidateAccess({ roles: ['company'], companierId: '7' })).toEqual({
+      kind: 'filter',
+      where: { companierId: BigInt(7) },
+    });
+    expect(resolveCandidateAccess({ roles: ['teacher'], candidateId: row.id }).kind).toBe('none');
+    expect(canAccessCandidateRow({ roles: ['teacher'] }, row)).toBe(false);
   });
 
   it('does not treat unknown roles as global', () => {

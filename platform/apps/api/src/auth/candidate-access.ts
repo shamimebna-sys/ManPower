@@ -24,7 +24,9 @@ export type CandidateScopeActor = {
   agentId?: string | bigint | null | undefined;
   subAgentId?: string | bigint | null | undefined;
   agencierId?: string | bigint | null | undefined;
+  companierId?: string | bigint | null | undefined;
   candidateId?: string | null | undefined;
+  employerId?: string | null | undefined;
 };
 
 export type CandidateAccess =
@@ -37,6 +39,7 @@ export type CandidateScopeRow = {
   agentId?: bigint | null;
   subAgentId?: bigint | null;
   agencierId?: bigint | null;
+  companierId?: bigint | null;
 };
 
 function asBigInt(value: string | bigint | null | undefined): bigint | undefined {
@@ -53,7 +56,9 @@ export function actorFromAuth(user: AuthenticatedUser): CandidateScopeActor {
     agentId: scope?.agentId,
     subAgentId: scope?.subAgentId,
     agencierId: scope?.agencierId,
+    companierId: scope?.companierId,
     candidateId: scope?.candidateId,
+    employerId: scope?.employerId,
   };
 }
 
@@ -91,6 +96,12 @@ export function resolveCandidateAccess(actor: CandidateScopeActor): CandidateAcc
     const agencierId = asBigInt(actor.agencierId);
     if (agencierId !== undefined) {
       clauses.push({ agencierId });
+    }
+  }
+  if (roles.has('company')) {
+    const companierId = asBigInt(actor.companierId);
+    if (companierId !== undefined) {
+      clauses.push({ companierId });
     }
   }
   if (roles.has('candidate') && actor.candidateId) {
@@ -135,6 +146,12 @@ export function canAccessCandidateRow(
   if (roles.has('agency')) {
     const agencierId = asBigInt(actor.agencierId);
     if (agencierId !== undefined && row.agencierId === agencierId) {
+      return true;
+    }
+  }
+  if (roles.has('company')) {
+    const companierId = asBigInt(actor.companierId);
+    if (companierId !== undefined && row.companierId === companierId) {
       return true;
     }
   }

@@ -1,6 +1,6 @@
 # PRE-M4 HARD GATE — decision lock + PostgreSQL 16
 
-Date: 2026-09-04
+Date: 2026-09-07
 
 This document locks prerequisite decisions for Design Gate M4 Recruitment.
 It does **not** change `modernization-design/final-design-gate/11-milestones-risks-approvals.md`.
@@ -10,10 +10,10 @@ It does **not** change `modernization-design/final-design-gate/11-milestones-ris
 | A07 RBAC | **DECISION LOCKED** |
 | A05 Agency / Company model | **DECISION LOCKED** |
 | A20 `employer_candidates.status` | **DECISION LOCKED** |
-| PostgreSQL 16 verification | **BLOCKED** — CI workflow is defined; no GitHub Actions run has proven `postgres:16` |
-| Design Gate M4 Recruitment | **NO-GO** |
+| PostgreSQL 16 verification | **PASS** — GitHub Actions `main` commit `d38eba1` |
+| Design Gate M4 Recruitment | **GO** — implemented on the target platform. See `docs/M4-RECRUITMENT.md`. |
 
-Design Gate M4 Recruitment was not started. No Agent, SubAgent, Agencier, Companier, EmployerCandidate, recruitment API, selection workflow, employer assignment, finance, or new permission/role work was created.
+This document is the prerequisite lock. M4 Recruitment implementation is recorded in `docs/M4-RECRUITMENT.md`. Finance, Training/Exam, and production import remain out of scope.
 
 ---
 
@@ -84,30 +84,31 @@ Workflow files:
 - Monorepo (this checkout): `.github/workflows/ci.yml` — `working-directory: platform`
 - If `platform/` is later the git root: `platform/.github/workflows/ci.yml`
 
-The integration job is reproducible from a clean checkout. It does not require Docker Desktop or a developer PostgreSQL install. Triggers: `push` / `pull_request` on `main` and `develop`, plus `workflow_dispatch`.
-
-### Recorded results (this workspace)
+### Recorded CI result — commit `d38eba1` on `main`
 
 | Check | Result |
 |---|---|
-| PostgreSQL version | **Unavailable** — no GitHub Actions run; local PostgreSQL 18 on 5432 was not used |
-| Migration result | **Not run on PostgreSQL 16** — existing files only (see below) |
-| DB integration result | **Not run** — suite is defined; skipped unless `RUN_DB_TESTS=true` |
-| Sequence result | **Not run** on PostgreSQL 16 |
-| FK result | **Not run** on PostgreSQL 16 |
-| RESTRICT result | **Not run** on PostgreSQL 16 |
-| Unique constraints | **Not run** on PostgreSQL 16 |
-| Rollback | **Not run** on PostgreSQL 16 |
-| Security integration | **Not run** on PostgreSQL 16 — live suite is `tests/db.security.integration.test.ts` |
-| Lint | Local **Passed** (see section 6) |
-| Typecheck | Local **Passed** (see section 6) |
-| Build | Local **Passed** (see section 6) |
+| GitHub Actions overall | **SUCCESS** |
+| BUILD/STATIC | **PASS** |
+| UNIT | **PASS** |
+| INTEGRATION — PostgreSQL 16 | **PASS** |
+| PostgreSQL version | Proven in CI (`postgres:16`; `SELECT version()` hard-checked) |
+| Migration result | **PASS** — all four existing target migrations applied on PostgreSQL 16 |
+| API tests on PostgreSQL 16 | **104 passed** (pagination fixture included) |
+| DB security integration | **7/7 passed** |
+| Sequence / FK / RESTRICT / unique / rollback | Covered by the passing integration suite |
+| Lint | **PASS** (BUILD/STATIC and integration jobs) |
+| Typecheck | **PASS** (BUILD/STATIC and integration jobs) |
+| Build | **PASS** (BUILD/STATIC and integration jobs) |
 
-Do not treat unit/mocked coverage as database verification.
+Applied migrations (unchanged names):
 
-**PostgreSQL 16 HARD GATE = BLOCKED**
+1. `20260903183000_m2_iam_audit`
+2. `20260904004500_m3_candidate_core`
+3. `20260904010000_m4_candidate_supporting_domains`
+4. `20260904013000_m4_candidate_code_sequence`
 
-A PASS requires a green `postgres16-integration` job whose `SELECT version()` output identifies PostgreSQL 16 and whose `RUN_DB_TESTS=true` suite is green.
+**PostgreSQL 16 HARD GATE = PASS**
 
 ---
 
@@ -116,29 +117,21 @@ A PASS requires a green `postgres16-integration` job whose `SELECT version()` ou
 Source: `nextval('candidate.candidate_code_seq')` → `9` + 6 digits (`9000001`, `9000002`, `9000003`, …).  
 Not `COUNT+1`. Migrated codes are never reallocated. External format is unchanged.
 
-Sequence starts at 1. `setval` is allowed only from actual `9######` rows in that database. No live PostgreSQL 16 rows exist here, so no `setval` was computed.
+Sequence starts at 1. `setval` is allowed only from actual `9######` rows in that database.
 
-CI integration tests assert `nextval`, `/^9\d{6}$/` formatting, and concurrent uniqueness.
+CI integration tests assert `nextval`, `/^9\d{6}$/` formatting, and concurrent uniqueness. Those checks passed on PostgreSQL 16 in commit `d38eba1`.
 
 ---
 
-## 6. Quality gate (local UNIT + BUILD/STATIC — no PostgreSQL 16)
-
-These results are **BUILD/STATIC** and **UNIT** only. They do not satisfy the hard gate.
-
-| Check | Result |
-|---|---|
-| Lint | **Passed** |
-| Typecheck | **Passed** |
-| API unit tests | **79 passed**, 25 skipped (18 DB + 7 security integration) |
-| Web tests | **8 passed** |
-| Build | **Passed** |
+## 6. Quality gate
 
 ### UNIT (mocked — not a DB proof)
 
 401, 403 permission, 403 CSRF, child IDOR, 409 unique, 422 validation, cursor bounds, create+audit transaction, A07 helper deny/allow.
 
-### INTEGRATION (defined, not executed here)
+CI UNIT job on `d38eba1`: **PASS**.
+
+### INTEGRATION (PostgreSQL 16 — proven)
 
 `tests/db.integration.test.ts` and `tests/db.security.integration.test.ts` against a real `postgres:16` database:
 
@@ -152,6 +145,12 @@ These results are **BUILD/STATIC** and **UNIT** only. They do not satisfy the ha
 - `nextval('candidate.candidate_code_seq')` and concurrent allocation
 - Prisma queries and applied migration names
 - live API 401 / 403 permission / 403 CSRF / agent empty scope / 409 / 422
+
+CI INTEGRATION job on `d38eba1`: **PASS** — 104 API tests.
+
+### BUILD/STATIC
+
+CI BUILD/STATIC job on `d38eba1`: **PASS** (lint, typecheck, API build, web build).
 
 ---
 
@@ -169,12 +168,17 @@ The dump file `u410970153_eujobbd.sql` is not in the Git checkout. CI verifies t
 
 ---
 
-## 8. Remaining blockers for Design Gate M4
+## 8. M4 Recruitment — prerequisite result
 
-1. A real GitHub Actions `postgres16-integration` run on `postgres:16` with `SELECT version()` + `RUN_DB_TESTS=true` green. This workspace has no executed CI run (and typically no git remote) until the repo is pushed.
-2. User↔partner/self ID bindings before scoped roles can resolve.
-3. Explicit permission grants beyond `super_admin` (not invented here).
-4. Company and teacher candidate scope still blocked.
-5. Employer assignment waits for Recruitment implementation.
+Pre-M4 hard-gate items are satisfied:
 
-**GO / NO-GO for Design Gate M4 Recruitment: NO-GO.**
+1. A07 = **DECISION LOCKED**
+2. A05 = **DECISION LOCKED**
+3. A20 = **DECISION LOCKED**
+4. PostgreSQL 16 CI hard gate = **PASS** (`d38eba1`)
+
+M4 implementation is recorded in `docs/M4-RECRUITMENT.md`. Teacher candidate access remains blocked pending M5 evidence.
+
+**GO / NO-GO for Design Gate M4 Recruitment: GO.**
+
+Implementation is recorded in `docs/M4-RECRUITMENT.md`. Do not treat this GO as delivery of finance, Training/Exam, or production import.

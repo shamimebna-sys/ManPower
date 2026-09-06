@@ -2,28 +2,26 @@
 
 **A07 status: DECISION LOCKED**
 
-19 keys are unchanged. Runtime grants remain `super_admin` only.
-Row-scope helper: `apps/api/src/auth/candidate-access.ts`.
-Full lock: `docs/PRE-M4-HARD-GATE.md`.
+24 keys. IAM keys remain `super_admin` only.  
+Row-scope helper: `apps/api/src/auth/candidate-access.ts`.  
+Recruitment record: `docs/M4-RECRUITMENT.md`.
 
-Do not invent report, document, partner, or recruitment keys.
+| Role key | Permission | Scope | Runtime grant | Policy |
+|---|---|---|---|---|
+| `super_admin` | all 24 keys | `all` | granted + bypass | global |
+| `administrator` | candidate + partners + employer_candidate (not IAM) | `all` | granted | global where permitted |
+| `owner` | candidate + partners + employer_candidate (not binding, not IAM) | `all` | granted | global where permitted |
+| `employee` | `candidate.read/create/update` | `all` | granted | global only with the key |
+| `agent` | `candidate.read`, `candidate.update` | `candidates.agent_id = bound Agent.source_legacy_id` | granted | scoped |
+| `sub_agent` | `candidate.read`, `candidate.update` | `candidates.sub_agent_id = bound SubAgent.source_legacy_id` | granted | scoped |
+| `agency` | `candidate.read`, `candidate.update` | `candidates.agencier_id = bound Agencier.source_legacy_id` | granted | scoped |
+| `company` | `candidate.read` | `candidates.companier_id = bound Companier.source_legacy_id` | granted | scoped |
+| `candidate` | `candidate.read`, `employer_candidate.read` | own candidate UUID | granted | self |
+| `employer` | `employer_candidate.read/manage` | own employer UUID | granted | assignment only |
+| `teacher` | none | BLOCKED | none | blocked pending M5 |
 
-| Role key | Permission | Scope | Current runtime grant | Approved target policy | Unresolved item |
-|---|---|---|---|---|---|
-| `super_admin` | all 19 defined keys | `all` | granted + bypass | global | none |
-| `administrator` | none yet | `all` if a key is later granted | none | global where permitted | grant list |
-| `owner` | none yet | `all` if a key is later granted | none | global where permitted | grant list |
-| `employee` | none yet | `all` only with that explicit key | none | global only with the key | grant list |
-| `agent` | none yet | `candidates.agent_id = user.agent_id` | none | scoped | partner binding |
-| `sub_agent` | none yet | `candidates.sub_agent_id = user.sub_agent_id` | none | scoped | partner binding |
-| `agency` | none yet | `candidates.agencier_id = user.agencier_id` | none | scoped | partner binding |
-| `candidate` | none yet | `candidates.id = user.candidate_id` | none | self | candidate UUID binding |
-| `employer` | none; no `candidate.read` | none on candidate APIs | none | Recruitment workflow only | assignment keys |
-| `company` | none | BLOCKED | none | blocked | Recruitment evidence |
-| `teacher` | none | BLOCKED | none | blocked | training/exam evidence |
+Defined keys:
 
-Defined keys (unchanged):
-
-`iam.user.read`, `iam.user.manage`, `iam.user_role.manage`, `iam.role_permission.manage`, `iam.audit.read`, `candidate.read`, `candidate.create`, `candidate.update`, `candidate.status.manage`, `candidate.education.read`, `candidate.education.manage`, `candidate.experience.read`, `candidate.experience.manage`, `candidate.skills.read`, `candidate.skills.manage`, `candidate.languages.read`, `candidate.languages.manage`, `candidate.training.read`, `candidate.training.manage`
+`iam.user.read`, `iam.user.manage`, `iam.user_role.manage`, `iam.role_permission.manage`, `iam.audit.read`, `candidate.read`, `candidate.create`, `candidate.update`, `candidate.status.manage`, `candidate.education.read`, `candidate.education.manage`, `candidate.experience.read`, `candidate.experience.manage`, `candidate.skills.read`, `candidate.skills.manage`, `candidate.languages.read`, `candidate.languages.manage`, `candidate.training.read`, `candidate.training.manage`, `partners.read`, `partners.manage`, `partners.user_binding.manage`, `employer_candidate.read`, `employer_candidate.manage`
 
 No `*.delete` keys. Frontend hiding is not authorization.

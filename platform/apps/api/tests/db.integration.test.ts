@@ -38,6 +38,7 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL integration', () => {
         '20260904004500_m3_candidate_core',
         '20260904010000_m4_candidate_supporting_domains',
         '20260904013000_m4_candidate_code_sequence',
+        '20260907010000_m4_recruitment',
       ])
     );
   });
@@ -46,7 +47,7 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL integration', () => {
     const rows = await db.$queryRaw<Array<{ table_name: string }>>`
       SELECT table_name
       FROM information_schema.tables
-      WHERE table_schema IN ('iam', 'audit', 'candidate', 'migration')
+      WHERE table_schema IN ('iam', 'audit', 'candidate', 'migration', 'partners')
     `;
     const names = rows.map((row) => row.table_name);
     expect(names).toEqual(
@@ -66,6 +67,12 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL integration', () => {
         'skill_list',
         'language_list',
         'trainings',
+        'agents',
+        'sub_agents',
+        'agenciers',
+        'companiers',
+        'employers',
+        'employer_candidates',
       ])
     );
   });

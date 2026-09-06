@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
 import { AppHeader } from '@/components/app-header';
 import Link from 'next/link';
+import { hasPermission } from '@/lib/permissions';
 
 export default function AuthenticatedShellPage() {
   const router = useRouter();
@@ -21,13 +22,23 @@ export default function AuthenticatedShellPage() {
       <AppHeader />
       <main>
         <h1>Welcome, {user.displayName}</h1>
-        <p>Authentication and the candidate master are available.</p>
+        <p>Authentication, candidate master, and recruitment are available.</p>
         <dl>
           <dt>Account</dt><dd>{user.email}</dd>
           <dt>Status</dt><dd>{user.status}</dd>
           <dt>Roles</dt><dd>{user.roles.join(', ') || 'No roles assigned'}</dd>
         </dl>
-        <Link className="button-link" href="/app/candidates">Open candidates</Link>
+        <p className="filter-row">
+          {hasPermission(user, 'candidate.read') ? (
+            <Link className="button-link" href="/app/candidates">Open candidates</Link>
+          ) : null}
+          {hasPermission(user, 'partners.read') ? (
+            <Link className="button-link" href="/app/partners">Open partners</Link>
+          ) : null}
+          {hasPermission(user, 'employer_candidate.read') ? (
+            <Link className="button-link" href="/app/employer-candidates">Open assignments</Link>
+          ) : null}
+        </p>
       </main>
     </section>
   );

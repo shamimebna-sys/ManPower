@@ -270,7 +270,7 @@ candidatesRouter.patch(
       const updated = await prisma.$transaction(async (tx) => {
         const existing = await tx.candidate.findUnique({
           where: { id },
-          select: { id: true, agentId: true, subAgentId: true, agencierId: true },
+          select: { id: true, agentId: true, subAgentId: true, agencierId: true, companierId: true },
         });
         if (!existing) throw AppError.notFound('Candidate');
         assertCandidateAccess(actor, existing);
@@ -315,7 +315,7 @@ candidatesRouter.patch(
     const updated = await prisma.$transaction(async (tx) => {
       const existing = await tx.candidate.findUnique({
         where: { id },
-        select: { id: true, status: true, agentId: true, subAgentId: true, agencierId: true },
+        select: { id: true, status: true, agentId: true, subAgentId: true, agencierId: true, companierId: true },
       });
       if (!existing) throw AppError.notFound('Candidate');
       assertCandidateAccess(actor, existing);

@@ -28,6 +28,13 @@ export const AUDIT_EVENTS = {
   CANDIDATE_LANGUAGE_UPDATED: 'candidate.language.updated',
   CANDIDATE_TRAINING_CREATED: 'candidate.training.created',
   CANDIDATE_TRAINING_UPDATED: 'candidate.training.updated',
+  USER_PARTNER_BOUND: 'user.partner.bound',
+  USER_PARTNER_UNBOUND: 'user.partner.unbound',
+  RECRUITMENT_PARTNER_CREATED: 'recruitment.partner.created',
+  RECRUITMENT_PARTNER_UPDATED: 'recruitment.partner.updated',
+  EMPLOYER_CANDIDATE_CREATED: 'employer_candidate.created',
+  EMPLOYER_CANDIDATE_UPDATED: 'employer_candidate.updated',
+  EMPLOYER_CANDIDATE_STATUS_CHANGED: 'employer_candidate.status.changed',
 } as const;
 
 interface AuditInput {

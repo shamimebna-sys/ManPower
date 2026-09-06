@@ -3,6 +3,8 @@ import { healthRouter } from './health.js';
 import { authRouter } from './auth.js';
 import { iamRouter } from './iam.js';
 import { candidatesRouter } from './candidates.js';
+import { partnersRouter } from './partners.js';
+import { employerCandidatesRouter } from './employer-candidates.js';
 
 /**
  * Root API router.
@@ -28,6 +30,8 @@ export function createRouter(): Router {
   router.use('/v1/auth', authRouter);
   router.use('/v1/iam', iamRouter);
   router.use('/v1/candidates', candidatesRouter);
+  router.use('/v1/partners', partnersRouter);
+  router.use('/v1/employer-candidates', employerCandidatesRouter);
 
   return router;
 }

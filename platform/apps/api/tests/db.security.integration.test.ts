@@ -253,4 +253,123 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 security integration', () => {
     });
     expect(response.status).toBe(409);
   });
+
+  it('denies teacher and unauthorized roles from M4 management endpoints', async () => {
+    const teacherRole = await db.role.upsert({
+      where: { key: 'teacher' },
+      create: { key: 'teacher', name: 'Teacher' },
+      update: {},
+    });
+    const { hashPassword } = await import('../src/auth/password.js');
+    const teacherUser = await db.user.create({
+      data: {
+        email: `ci-teacher-${Date.now()}@example.com`,
+        username: `ci-teacher-${Date.now()}`,
+        displayName: 'CI Teacher',
+        passwordHash: await hashPassword(fixtures.admin.password),
+      },
+    });
+    await db.userRole.create({ data: { userId: teacherUser.id, roleId: teacherRole.id } });
+    const teacherSession = await openSession(teacherUser.id);
+    const candidates = await auth(request(app).get('/api/v1/candidates'), teacherSession);
+    const partners = await auth(request(app).get('/api/v1/partners/agent'), teacherSession);
+    const manage = await auth(request(app).post('/api/v1/partners/agent'), teacherSession).send({
+      name: 'Blocked',
+    });
+    expect(candidates.status).toBe(403);
+    expect(partners.status).toBe(403);
+    expect(manage.status).toBe(403);
+  });
+
+  it('prevents agent A from reading agent B candidates after UUID binding', async () => {
+    const mark = `${Date.now()}`;
+    const agentA = await db.agent.create({
+      data: { name: 'Agent A', sourceLegacyId: BigInt(`8${mark.slice(-7)}`) },
+    });
+    const agentB = await db.agent.create({
+      data: { name: 'Agent B', sourceLegacyId: BigInt(`9${mark.slice(-7)}`) },
+    });
+    const visible = await db.candidate.create({
+      data: {
+        name: 'Bound A',
+        email: `bound-a-${mark}@example.com`,
+        mobile: `050${mark.slice(-8)}`,
+        passportNo: `BDA${mark}`,
+        agentId: agentA.sourceLegacyId,
+        classGroupId: 1,
+        code: `9BA${mark}`.slice(0, 10),
+      },
+    });
+    const hidden = await db.candidate.create({
+      data: {
+        name: 'Bound B',
+        email: `bound-b-${mark}@example.com`,
+        mobile: `051${mark.slice(-8)}`,
+        passportNo: `BDB${mark}`,
+        agentId: agentB.sourceLegacyId,
+        classGroupId: 1,
+        code: `9BB${mark}`.slice(0, 10),
+      },
+    });
+    const agentRole = await db.role.findUnique({ where: { key: 'agent' } });
+    if (!agentRole) throw new Error('agent role missing');
+    const { hashPassword } = await import('../src/auth/password.js');
+    const userA = await db.user.create({
+      data: {
+        email: `bound-agent-${mark}@example.com`,
+        username: `bound-agent-${mark}`,
+        displayName: 'Bound Agent',
+        passwordHash: await hashPassword(fixtures.admin.password),
+        agentId: agentA.id,
+      },
+    });
+    await db.userRole.create({ data: { userId: userA.id, roleId: agentRole.id } });
+    const sessionA = await openSession(userA.id);
+    const list = await auth(request(app).get('/api/v1/candidates'), sessionA);
+    expect(list.status).toBe(200);
+    const ids = (list.body.data.items as Array<{ id: string }>).map((item) => item.id);
+    expect(ids).toContain(visible.id);
+    expect(ids).not.toContain(hidden.id);
+    const denied = await auth(request(app).get(`/api/v1/candidates/${hidden.id}`), sessionA);
+    expect(denied.status).toBe(404);
+  });
+
+  it('prevents an employer from assigning outside its bound identity', async () => {
+    const mark = `${Date.now()}`;
+    const employerA = await db.employer.create({ data: { name: `Emp A ${mark}` } });
+    const employerB = await db.employer.create({ data: { name: `Emp B ${mark}` } });
+    const employerRole = await db.role.upsert({
+      where: { key: 'employer' },
+      create: { key: 'employer', name: 'Employer' },
+      update: {},
+    });
+    const manage = await db.permission.upsert({
+      where: { key: 'employer_candidate.manage' },
+      create: { key: 'employer_candidate.manage', name: 'Manage employer candidates' },
+      update: {},
+    });
+    await db.rolePermission.upsert({
+      where: { roleId_permissionId: { roleId: employerRole.id, permissionId: manage.id } },
+      create: { roleId: employerRole.id, permissionId: manage.id },
+      update: {},
+    });
+    const { hashPassword } = await import('../src/auth/password.js');
+    const userA = await db.user.create({
+      data: {
+        email: `emp-a-${mark}@example.com`,
+        username: `emp-a-${mark}`,
+        displayName: 'Employer A',
+        passwordHash: await hashPassword(fixtures.admin.password),
+        employerId: employerA.id,
+      },
+    });
+    await db.userRole.create({ data: { userId: userA.id, roleId: employerRole.id } });
+    const sessionA = await openSession(userA.id);
+    const response = await auth(request(app).post('/api/v1/employer-candidates'), sessionA).send({
+      employerId: employerB.id,
+      candidateId: candidateAId,
+      purpose: 'FAVORITE',
+    });
+    expect(response.status).toBe(404);
+  });
 });

@@ -209,10 +209,10 @@ and the PRE-M4 hard-gate evidence:
 | A07 RBAC | **DECISION LOCKED** — `docs/PRE-M4-HARD-GATE.md` |
 | A05 Agency / Company | **DECISION LOCKED** — `docs/A05-AGENCY-COMPANY-EVIDENCE.md` |
 | A20 employer_candidates.status | **DECISION LOCKED** — `docs/A20-EMPLOYER-CANDIDATES-STATUS.md` |
-| PostgreSQL 16 HARD GATE | **BLOCKED** — CI workflow defined; no proven `postgres:16` run yet |
+| PostgreSQL 16 HARD GATE | **PASS** — CI `main` commit `d38eba1` |
 
 Later business modules remain excluded until their milestone approvals.
-Design Gate M4 Recruitment is **NO-GO** until PostgreSQL 16 verification passes.
+Design Gate M4 Recruitment is implemented. See `docs/M4-RECRUITMENT.md`.
 
 ---
 

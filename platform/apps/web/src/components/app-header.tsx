@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
+import { hasPermission } from '@/lib/permissions';
 
 export function AppHeader() {
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   return (
     <header>
@@ -17,7 +18,11 @@ export function AppHeader() {
       </strong>
       <nav className="app-nav">
         <Link href="/app">Home</Link>
-        <Link href="/app/candidates">Candidates</Link>
+        {hasPermission(user, 'candidate.read') ? <Link href="/app/candidates">Candidates</Link> : null}
+        {hasPermission(user, 'partners.read') ? <Link href="/app/partners">Partners</Link> : null}
+        {hasPermission(user, 'employer_candidate.read') ? (
+          <Link href="/app/employer-candidates">Assignments</Link>
+        ) : null}
         <button type="button" onClick={() => void logout().then(() => router.replace('/login'))}>
           Sign out
         </button>
