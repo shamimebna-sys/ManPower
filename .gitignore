@@ -15,3 +15,6 @@ yarn-error.log
 
 # Production database dumps
 docs/database-audit/*.sql
+
+# Production database dumps
+docs/database-audit/*.sql
