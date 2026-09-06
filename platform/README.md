@@ -282,7 +282,13 @@ pm2 start "pnpm start" --name manpower-web
 
 The legacy Laravel application lives in `src/` (one level above `platform/`).
 
-> ⛔ **NEVER** modify, delete, or rename any file in `src/`, the legacy `routes/`, `config/`, `database/`, `storage/`, or the SQL dump in `docs/database-audit/`.
+> ⛔ **NEVER** modify, delete, or rename any file in `src/`, the legacy `routes/`, `config/`, `database/`, or `storage/`.
+
+The production SQL dump (`docs/database-audit/u410970153_eujobbd.sql`) is intentionally excluded from Git because of its size (~223 MB) and sensitivity. Its SHA-256 is preserved as migration evidence in `docs/database-audit/production-dump.sha256`:
+
+`D6B2C811CC456DD545AB3CF2578E6C45F713F89D262426F5C18FB5E5D660F2E8`
+
+CI verifies that recorded evidence. It does not re-hash dump bytes. Actual dump-byte verification must be performed in the controlled migration environment where the dump is available.
 
 The legacy application remains the system of record during development. Data migration will occur in M13 following the approved migration design in `modernization-design/`.
 

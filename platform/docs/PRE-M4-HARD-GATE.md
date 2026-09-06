@@ -161,11 +161,11 @@ These results are **BUILD/STATIC** and **UNIT** only. They do not satisfy the ha
 |---|---|
 | Laravel `src/` | Not modified for this gate |
 | Legacy routes | Not modified |
-| Production dump | Not modified; SHA-256 must remain `D6B2C811CC456DD545AB3CF2578E6C45F713F89D262426F5C18FB5E5D660F2E8` |
+| Production dump | Intentionally excluded from Git (size + sensitivity). Recorded SHA-256 remains `D6B2C811CC456DD545AB3CF2578E6C45F713F89D262426F5C18FB5E5D660F2E8` |
 | Production MariaDB | Not connected |
 | Production data | Not imported |
 
-The monorepo `postgres16-integration` job re-hashes `docs/database-audit/u410970153_eujobbd.sql` and fails on mismatch.
+The dump file `u410970153_eujobbd.sql` is not in the Git checkout. CI verifies the committed evidence file `docs/database-audit/production-dump.sha256` (recorded SHA-256 + source filename). That is **not** a re-hash of dump bytes. Actual dump-byte verification belongs in the controlled migration environment where the dump is available.
 
 ---
 

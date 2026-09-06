@@ -6,11 +6,15 @@ on:
     paths:
       - 'platform/**'
       - '.github/workflows/ci.yml'
+      - 'docs/database-audit/production-dump.sha256'
+      - 'docs/database-audit/README.md'
   pull_request:
     branches: [main, develop]
     paths:
       - 'platform/**'
       - '.github/workflows/ci.yml'
+      - 'docs/database-audit/production-dump.sha256'
+      - 'docs/database-audit/README.md'
   workflow_dispatch:
 
 defaults:
@@ -116,13 +120,23 @@ jobs:
       - name: Install PostgreSQL client
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
         working-directory: .
-      - name: Verify production dump SHA-256 is unchanged
+      - name: Verify recorded production dump SHA-256 evidence
         working-directory: .
         run: |
-          EXPECTED='D6B2C811CC456DD545AB3CF2578E6C45F713F89D262426F5C18FB5E5D660F2E8'
-          ACTUAL=$(sha256sum docs/database-audit/u410970153_eujobbd.sql | awk '{print toupper($1)}')
-          echo "Dump SHA-256: $ACTUAL"
-          test "$ACTUAL" = "$EXPECTED"
+          EVIDENCE='docs/database-audit/production-dump.sha256'
+          EXPECTED_HASH='D6B2C811CC456DD545AB3CF2578E6C45F713F89D262426F5C18FB5E5D660F2E8'
+          EXPECTED_FILE='u410970153_eujobbd.sql'
+          if [ ! -f "$EVIDENCE" ]; then
+            echo "Missing committed dump SHA-256 evidence: $EVIDENCE"
+            exit 1
+          fi
+          LINE=$(sed -n '1p' "$EVIDENCE" | tr -d '\r')
+          echo "Recorded production dump SHA-256 evidence: $LINE"
+          echo "This step verifies the committed evidence file only."
+          echo "It does not hash production dump bytes (the SQL dump is intentionally not in Git)."
+          test "$LINE" = "${EXPECTED_HASH}  ${EXPECTED_FILE}"
+          grep -F -q "$EXPECTED_HASH" "$EVIDENCE"
+          grep -F -q "$EXPECTED_FILE" "$EVIDENCE"
       - name: Fail unless SELECT version() is PostgreSQL 16
         env:
           PGPASSWORD: manpower_ci_password
