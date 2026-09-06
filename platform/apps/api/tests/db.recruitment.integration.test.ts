@@ -98,7 +98,7 @@ describe.skipIf(!runDatabaseTests)('M4 recruitment PostgreSQL integration', () =
         passportNo: `EC${mark}`,
         agentId: 1,
         classGroupId: 1,
-        code: `9EC${mark}`.slice(0, 10),
+        code: '9891001',
       },
     });
     const active = await db.employerCandidate.create({
@@ -156,7 +156,7 @@ describe.skipIf(!runDatabaseTests)('M4 recruitment PostgreSQL integration', () =
         companierId: 70,
         agentId: 1,
         classGroupId: 1,
-        code: `9CI${mark}`.slice(0, 10),
+        code: '9891002',
       },
     });
     const hidden = await db.candidate.create({
@@ -168,7 +168,7 @@ describe.skipIf(!runDatabaseTests)('M4 recruitment PostgreSQL integration', () =
         companierId: 71,
         agentId: 1,
         classGroupId: 1,
-        code: `9CO${mark}`.slice(0, 10),
+        code: '9891003',
       },
     });
     const access = resolveCandidateAccess({ roles: ['company'], companierId: '70' });
@@ -192,7 +192,7 @@ describe.skipIf(!runDatabaseTests)('M4 recruitment PostgreSQL integration', () =
         subAgentId: 201,
         agencierId: 301,
         classGroupId: 1,
-        code: `9SA${mark}`.slice(0, 10),
+        code: '9891004',
       },
     });
     const b = await db.candidate.create({
@@ -205,7 +205,7 @@ describe.skipIf(!runDatabaseTests)('M4 recruitment PostgreSQL integration', () =
         subAgentId: 202,
         agencierId: 302,
         classGroupId: 1,
-        code: `9SB${mark}`.slice(0, 10),
+        code: '9891005',
       },
     });
     for (const actor of [
