@@ -313,6 +313,7 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL integration', () => {
 
   it('supports cursor pagination queries against candidates', async () => {
     const stamp = uniqueStamp();
+    const createdAt = new Date('2026-01-15T12:00:00.000Z');
     const created = await Promise.all(
       [1, 2, 3].map((n) =>
         db.candidate.create({
@@ -324,6 +325,7 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL integration', () => {
             agentId: 1,
             classGroupId: 1,
             code: `989000${n}`,
+            createdAt,
           },
         })
       )
