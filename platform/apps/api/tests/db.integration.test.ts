@@ -323,7 +323,7 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL integration', () => {
             passportNo: `PG${stamp}${n}`,
             agentId: 1,
             classGroupId: 1,
-            code: `9P${stamp}${n}`.slice(0, 10),
+            code: `989000${n}`,
           },
         })
       )
