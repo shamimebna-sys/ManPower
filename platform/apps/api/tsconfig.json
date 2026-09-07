@@ -3,8 +3,9 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2022",
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "module": "Preserve",
+    "moduleResolution": "bundler",
+    "rootDir": "../..",
     "outDir": "./dist",
     "declaration": true,
     "declarationMap": true,
