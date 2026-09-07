@@ -56,6 +56,21 @@ export const AUDIT_EVENTS = {
   TRAINING_MANPOWER_CREATED: 'training.manpower.created',
   TRAINING_MANPOWER_UPDATED: 'training.manpower.updated',
   TRAINING_MANPOWER_STATUS_CHANGED: 'training.manpower.status.changed',
+  OVERSEAS_MEDICAL_CREATED: 'overseas.medical.created',
+  OVERSEAS_MEDICAL_UPDATED: 'overseas.medical.updated',
+  OVERSEAS_POLICE_CLEARANCE_CREATED: 'overseas.police_clearance.created',
+  OVERSEAS_POLICE_CLEARANCE_UPDATED: 'overseas.police_clearance.updated',
+  OVERSEAS_ARC_CREATED: 'overseas.arc.created',
+  OVERSEAS_ARC_UPDATED: 'overseas.arc.updated',
+  OVERSEAS_LABOUR_CONTRACT_CREATED: 'overseas.labour_contract.created',
+  OVERSEAS_LABOUR_CONTRACT_UPDATED: 'overseas.labour_contract.updated',
+  OVERSEAS_VISA_CREATED: 'overseas.visa.created',
+  OVERSEAS_VISA_UPDATED: 'overseas.visa.updated',
+  OVERSEAS_FLIGHT_CREATED: 'overseas.flight.created',
+  OVERSEAS_FLIGHT_UPDATED: 'overseas.flight.updated',
+  OVERSEAS_LICENSE_CREATED: 'overseas.license.created',
+  OVERSEAS_LICENSE_UPDATED: 'overseas.license.updated',
+  OVERSEAS_STATUS_CHANGED: 'overseas.status.changed',
 } as const;
 
 interface AuditInput {

@@ -4,11 +4,12 @@ import {
   FOUNDATION_PERMISSIONS,
   M4_ROLE_GRANTS,
   M5_ROLE_GRANTS,
+  M6_ROLE_GRANTS,
 } from '../iam/permission-catalogue.js';
 
 /**
  * Upserts the permission catalogue, approved roles, super_admin grants,
- * and the explicit M4 role grants. IAM keys stay on super_admin only.
+ * and the explicit M4+M5+M6 role grants. IAM keys stay on super_admin only.
  */
 async function main(): Promise<void> {
   const permissions = await Promise.all(
@@ -55,7 +56,7 @@ async function main(): Promise<void> {
     )
   );
 
-  for (const grants of [M4_ROLE_GRANTS, M5_ROLE_GRANTS]) {
+  for (const grants of [M4_ROLE_GRANTS, M5_ROLE_GRANTS, M6_ROLE_GRANTS]) {
     for (const [roleKey, keys] of Object.entries(grants)) {
       const role = roleByKey.get(roleKey);
       if (!role) {
@@ -80,7 +81,7 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    `Ensured ${permissions.length} permissions, ${roles.length} roles, and M4+M5 grants.`
+    `Ensured ${permissions.length} permissions, ${roles.length} roles, and M4+M5+M6 grants.`
   );
 }
 

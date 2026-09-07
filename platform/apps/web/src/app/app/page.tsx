@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
 import { AppHeader } from '@/components/app-header';
 import Link from 'next/link';
-import { hasPermission } from '@/lib/permissions';
+import { hasAnyPermission, hasPermission, OVERSEAS_READ_KEYS } from '@/lib/permissions';
 
 export default function AuthenticatedShellPage() {
   const router = useRouter();
@@ -46,6 +46,12 @@ export default function AuthenticatedShellPage() {
           ) : null}
           {hasPermission(user, 'training.manpower.read') ? (
             <Link className="button-link" href="/app/manpower-trainings">Open manpower training</Link>
+          ) : null}
+          {hasAnyPermission(user, OVERSEAS_READ_KEYS) ? (
+            <Link className="button-link" href="/app/overseas">Open overseas processing</Link>
+          ) : null}
+          {hasPermission(user, 'operations.license.read') ? (
+            <Link className="button-link" href="/app/licenses">Open licenses</Link>
           ) : null}
         </p>
       </main>

@@ -2,17 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import type { CandidateRecord } from '@manpower/shared';
+import type { CandidateRecord, LiveStatusBadgeRecord } from '@manpower/shared';
 import { useAuth } from '@/components/auth-provider';
 import { AppHeader } from '@/components/app-header';
 import { apiClient, ApiClientError } from '@/lib/api-client';
 import { CandidateProfileSections } from '@/components/candidate-profile-sections';
+import { hasAnyPermission, OVERSEAS_READ_KEYS } from '@/lib/permissions';
 
 export default function CandidateDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const { user, loading } = useAuth();
   const [candidate, setCandidate] = useState<CandidateRecord | null>(null);
+  const [badge, setBadge] = useState<LiveStatusBadgeRecord | null>(null);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -24,7 +26,13 @@ export default function CandidateDetailPage() {
     if (!user || !params.id) return;
     apiClient
       .get<CandidateRecord>(`/api/v1/candidates/${params.id}`)
-      .then(setCandidate)
+      .then((record) => {
+        setCandidate(record);
+        if (hasAnyPermission(user, OVERSEAS_READ_KEYS)) {
+          return apiClient.get<LiveStatusBadgeRecord>(`/api/v1/live-status/${params.id}`).then(setBadge);
+        }
+        return undefined;
+      })
       .catch((caught: unknown) => {
         if (caught instanceof ApiClientError && caught.statusCode === 403) {
           router.replace('/forbidden');
@@ -113,6 +121,10 @@ export default function CandidateDetailPage() {
           </button>
         </div>
         <dl>
+          <dt>Live status</dt>
+          <dd>
+            {badge ? `Step ${badge.stepNo}: ${badge.name}` : hasAnyPermission(user, OVERSEAS_READ_KEYS) ? '—' : 'No overseas read'}
+          </dd>
           <dt>DOB</dt><dd>{candidate.dob ?? '—'}</dd>
           <dt>Agent ID</dt><dd>{candidate.agentId ?? '—'}</dd>
           <dt>Class group ID</dt><dd>{candidate.classGroupId ?? '—'}</dd>

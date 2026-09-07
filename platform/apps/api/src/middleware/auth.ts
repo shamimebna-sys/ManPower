@@ -61,6 +61,10 @@ export function requireCsrf(req: Request, res: Response, next: NextFunction): vo
 }
 
 export function requirePermission(permissionKey: string): RequestHandler {
+  return requireAnyPermission(permissionKey);
+}
+
+export function requireAnyPermission(...permissionKeys: string[]): RequestHandler {
   return (req, res, next): void => {
     if (!req.auth) {
       unauthorized(res);
@@ -69,7 +73,7 @@ export function requirePermission(permissionKey: string): RequestHandler {
 
     const allowed =
       req.auth.user.roles.includes('super_admin') ||
-      req.auth.user.permissions.includes(permissionKey);
+      permissionKeys.some((key) => req.auth?.user.permissions.includes(key));
 
     if (!allowed) {
       const body: ApiErrorResponse = {

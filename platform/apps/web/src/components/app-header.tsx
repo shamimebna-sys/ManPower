@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
-import { hasPermission } from '@/lib/permissions';
+import { hasAnyPermission, hasPermission, OVERSEAS_READ_KEYS } from '@/lib/permissions';
 
 export function AppHeader() {
   const router = useRouter();
@@ -35,6 +35,8 @@ export function AppHeader() {
         {hasPermission(user, 'training.manpower.read') ? (
           <Link href="/app/manpower-trainings">Manpower training</Link>
         ) : null}
+        {hasAnyPermission(user, OVERSEAS_READ_KEYS) ? <Link href="/app/overseas">Overseas</Link> : null}
+        {hasPermission(user, 'operations.license.read') ? <Link href="/app/licenses">Licenses</Link> : null}
         <button type="button" onClick={() => void logout().then(() => router.replace('/login'))}>
           Sign out
         </button>

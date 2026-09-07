@@ -3,7 +3,8 @@
 // ============================================================
 // M1 foundation + M2 IAM/audit + M3 candidate master + M4 profile children
 // + M4 recruitment (partner masters, user bindings, employer_candidates)
-// + M5 training/exam (teachers, class groups, schedules, exams, results, manpower).
+// + M5 training/exam (teachers, class groups, schedules, exams, results, manpower)
+// + M6 overseas processing (medical, police, ARC, labour, visa, flight, licenses, live_status).
 // Sequence candidate.candidate_code_seq allocates new fallback codes (9######).
 // Later business models are added only in approved milestones.
 //
@@ -278,6 +279,12 @@ model Candidate {
   classGroup ClassGroup? @relation(fields: [classGroupRefId], references: [id], onDelete: Restrict)
   examResults ExamResult[]
   manpowerTrainings ManpowerTrainingEvent[]
+  medicals          CandidateMedical[]
+  policeClearances  PoliceClearance[]
+  arcs              CandidateArc[]
+  labourContracts   LabourContract[]
+  visaImmigrations  VisaImmigration[]
+  flightSchedules   FlightSchedule[]
 
   @@unique([email])
   @@unique([mobile])
@@ -592,6 +599,7 @@ model Companier {
   updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   boundUsers User[]
+  licenses   License[]
 
   @@index([status])
   @@index([name])
@@ -824,4 +832,202 @@ model ManpowerTrainingEvent {
   @@index([candidateId, status])
   @@map("manpower_training_events")
   @@schema("workflow")
+}
+
+// ============================================================
+// M6 — Overseas processing
+// Domain split (approved): police → workflow; medical/ARC/labour/visa/flight →
+// candidate; licenses + live_status lookup → operations.
+// candidate_id / license_id / companier_id are nullable so M13 can quarantine
+// orphans (Q-*-CAND, Q-LP-LIC, Q-LIC-COMP). Do not silently repair.
+// File columns are UUID private references. Source lineage for ARC:
+// acr_file_path → arc_file_id. Bytes remain M9. No finance writes. No M7.
+// ============================================================
+
+/// latest() = created_at DESC, source_legacy_id DESC NULLS LAST. No implicit status filter.
+model CandidateMedical {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceLegacyId BigInt?   @unique @map("source_legacy_id")
+  candidateId    String?   @map("candidate_id") @db.Uuid
+  issueDate      DateTime? @map("issue_date") @db.Date
+  expireDate     DateTime? @map("expire_date") @db.Date
+  status         String?   @db.VarChar(5)
+  /// Private UUID file reference. Not a public URL.
+  documentFileId String?   @map("document_file_id") @db.Uuid
+  /// Opaque legacy country id. No countries table in M6.
+  countryId      BigInt?   @map("country_id")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  candidate Candidate? @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+
+  @@index([candidateId, createdAt])
+  @@index([candidateId, sourceLegacyId])
+  @@map("medicals")
+  @@schema("candidate")
+}
+
+model PoliceClearance {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceLegacyId BigInt?   @unique @map("source_legacy_id")
+  candidateId    String?   @map("candidate_id") @db.Uuid
+  /// Opaque legacy thana id. No thanas table in M6.
+  thanaId        BigInt?   @map("thana_id")
+  /// Opaque legacy country id. No countries table in M6.
+  countryId      BigInt?   @map("country_id")
+  issueDate      DateTime? @map("issue_date") @db.Date
+  expireDate     DateTime? @map("expire_date") @db.Date
+  photoFileId    String?   @map("photo_file_id") @db.Uuid
+  status         String?   @db.VarChar(5)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByLegacyId BigInt? @map("created_by_legacy_id")
+  updatedByLegacyId BigInt? @map("updated_by_legacy_id")
+
+  candidate Candidate? @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+
+  @@index([candidateId, createdAt])
+  @@index([candidateId, sourceLegacyId])
+  @@map("police_clearances")
+  @@schema("workflow")
+}
+
+model CandidateArc {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceLegacyId BigInt?   @unique @map("source_legacy_id")
+  candidateId    String?   @map("candidate_id") @db.Uuid
+  issueDate      DateTime? @map("issue_date") @db.Date
+  expireDate     DateTime? @map("expire_date") @db.Date
+  isLifetime     String?   @map("is_lifetime") @db.VarChar(5)
+  status         String?   @db.VarChar(5)
+  /// Source column: acr_file_path (legacy spelling retained in lineage only).
+  arcFileId      String?   @map("arc_file_id") @db.Uuid
+  arcNumber      String?   @map("arc_number") @db.VarChar(255)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  candidate Candidate? @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+
+  @@index([candidateId, createdAt])
+  @@index([candidateId, sourceLegacyId])
+  @@map("arcs")
+  @@schema("candidate")
+}
+
+model LabourContract {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceLegacyId BigInt?   @unique @map("source_legacy_id")
+  candidateId    String?   @map("candidate_id") @db.Uuid
+  issueDate      DateTime? @map("issue_date") @db.Date
+  expireDate     DateTime? @map("expire_date") @db.Date
+  documentFileId String?   @map("document_file_id") @db.Uuid
+  status         String?   @db.VarChar(5)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  candidate Candidate? @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+
+  @@index([candidateId, createdAt])
+  @@index([candidateId, sourceLegacyId])
+  @@map("labour_contracts")
+  @@schema("candidate")
+}
+
+model VisaImmigration {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceLegacyId BigInt?   @unique @map("source_legacy_id")
+  candidateId    String?   @map("candidate_id") @db.Uuid
+  issueDate      DateTime? @map("issue_date") @db.Date
+  expireDate     DateTime? @map("expire_date") @db.Date
+  visaMpNo       String?   @map("visa_mp_no") @db.VarChar(255)
+  status         String?   @db.VarChar(5)
+  documentFileId String?   @map("document_file_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  candidate Candidate? @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+
+  @@index([candidateId, createdAt])
+  @@index([candidateId, sourceLegacyId])
+  @@map("visa_immigrations")
+  @@schema("candidate")
+}
+
+model FlightSchedule {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceLegacyId BigInt?   @unique @map("source_legacy_id")
+  candidateId    String?   @map("candidate_id") @db.Uuid
+  /// Source column spelling preserved (airlinece_name).
+  airlineceName  String?   @map("airlinece_name") @db.VarChar(255)
+  flightDate     DateTime? @map("flight_date") @db.Date
+  flightTime     DateTime? @map("flight_time") @db.Time(6)
+  departureTime  DateTime? @map("departure_time") @db.Time(6)
+  arrivalTime    DateTime? @map("arrival_time") @db.Time(6)
+  ticketFileId   String?   @map("ticket_file_id") @db.Uuid
+  arrivalSealPageFileId String? @map("arrival_seal_page_file_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  candidate Candidate? @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+
+  @@index([candidateId, createdAt])
+  @@index([candidateId, sourceLegacyId])
+  @@map("flight_schedules")
+  @@schema("candidate")
+}
+
+model License {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceLegacyId    BigInt?   @unique @map("source_legacy_id")
+  licenseNo         String    @unique @map("license_no") @db.VarChar(255)
+  status            String?   @default("A") @db.VarChar(5)
+  companierId       String?   @map("companier_id") @db.Uuid
+  licenseStartDate  DateTime? @map("license_start_date") @db.Date
+  licenseExpireDate DateTime? @map("license_expire_date") @db.Date
+  licenseFileId     String?   @map("license_file_id") @db.Uuid
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  companier Companier?        @relation(fields: [companierId], references: [id], onDelete: Restrict)
+  positions LicensePosition[]
+
+  @@index([companierId])
+  @@index([status])
+  @@map("licenses")
+  @@schema("operations")
+}
+
+/// license_id is nullable so M13 can store Q-LP-LIC (17 positions → missing license 1)
+/// without inventing a parent. Do not repair, delete, merge, or reassign.
+model LicensePosition {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceLegacyId BigInt?   @unique @map("source_legacy_id")
+  licenseId      String?   @map("license_id") @db.Uuid
+  /// Opaque legacy positions.id. No positions table in M6.
+  positionId     BigInt?   @map("position_id")
+  quantity       Int?      @default(0)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  license License? @relation(fields: [licenseId], references: [id], onDelete: Restrict)
+
+  @@index([licenseId])
+  @@map("license_positions")
+  @@schema("operations")
+}
+
+/// Compatibility lookup. Labels are exact dump strings. Read-only in M6.
+model LiveStatusLookup {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceLegacyId BigInt?   @unique @map("source_legacy_id")
+  name           String?   @db.VarChar(255)
+  description    String?   @db.VarChar(255)
+  stepNo         Int?      @map("step_no")
+  status         String?   @db.VarChar(5)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([stepNo])
+  @@map("live_status")
+  @@schema("operations")
 }

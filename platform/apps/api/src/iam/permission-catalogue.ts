@@ -35,6 +35,20 @@ export const FOUNDATION_PERMISSIONS = [
   ['training.exam_result.manage', 'Publish and grade exam results'],
   ['training.manpower.read', 'Read manpower / BMET training evidence'],
   ['training.manpower.manage', 'Create and update manpower / BMET training evidence'],
+  ['overseas.medical.read', 'Read candidate medical records'],
+  ['overseas.medical.manage', 'Create and update candidate medical records'],
+  ['overseas.police_clearance.read', 'Read police clearance records'],
+  ['overseas.police_clearance.manage', 'Create and update police clearance records'],
+  ['overseas.arc.read', 'Read ARC records'],
+  ['overseas.arc.manage', 'Create and update ARC records'],
+  ['overseas.labour_contract.read', 'Read labour contract records'],
+  ['overseas.labour_contract.manage', 'Create and update labour contract records'],
+  ['overseas.visa.read', 'Read visa immigration records'],
+  ['overseas.visa.manage', 'Create and update visa immigration records'],
+  ['overseas.flight.read', 'Read flight schedule records'],
+  ['overseas.flight.manage', 'Create and update flight schedule records'],
+  ['operations.license.read', 'Read companier licenses'],
+  ['operations.license.manage', 'Create and update companier licenses'],
 ] as const;
 
 export const APPROVED_ROLES = [
@@ -143,3 +157,50 @@ export const M5_PERMISSION_KEYS = [
   'training.manpower.read',
   'training.manpower.manage',
 ] as const;
+
+export const M6_PERMISSION_KEYS = [
+  'overseas.medical.read',
+  'overseas.medical.manage',
+  'overseas.police_clearance.read',
+  'overseas.police_clearance.manage',
+  'overseas.arc.read',
+  'overseas.arc.manage',
+  'overseas.labour_contract.read',
+  'overseas.labour_contract.manage',
+  'overseas.visa.read',
+  'overseas.visa.manage',
+  'overseas.flight.read',
+  'overseas.flight.manage',
+  'operations.license.read',
+  'operations.license.manage',
+] as const;
+
+export const M6_OVERSEAS_READ_KEYS = [
+  'overseas.medical.read',
+  'overseas.police_clearance.read',
+  'overseas.arc.read',
+  'overseas.labour_contract.read',
+  'overseas.visa.read',
+  'overseas.flight.read',
+] as const;
+
+export const M6_OVERSEAS_KEYS = M6_PERMISSION_KEYS.filter((key) => key.startsWith('overseas.'));
+
+const M6_OPERATIONAL_KEYS = [...M6_PERMISSION_KEYS];
+const M6_SCOPED_OVERSEAS_KEYS = M6_OVERSEAS_KEYS;
+
+/**
+ * Exact approved M6 runtime matrix (G3/G7).
+ * Agent/sub_agent/agency labour-contract access is an intentional TARGET
+ * authorization decision; not legacy parity. Do not remove or weaken.
+ * Company/candidate/employer/teacher receive no M6 grant.
+ * Teacher remains without candidate.read.
+ */
+export const M6_ROLE_GRANTS: Record<string, readonly string[]> = {
+  owner: M6_OPERATIONAL_KEYS,
+  administrator: M6_OPERATIONAL_KEYS,
+  employee: M6_OPERATIONAL_KEYS,
+  agent: M6_SCOPED_OVERSEAS_KEYS,
+  sub_agent: M6_SCOPED_OVERSEAS_KEYS,
+  agency: M6_SCOPED_OVERSEAS_KEYS,
+};

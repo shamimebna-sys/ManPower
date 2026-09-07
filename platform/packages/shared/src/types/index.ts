@@ -5,3 +5,4 @@ export type * from './health.js';
 export type * from './profile.js';
 export type * from './recruitment.js';
 export type * from './training.js';
+export type * from './overseas.js';
