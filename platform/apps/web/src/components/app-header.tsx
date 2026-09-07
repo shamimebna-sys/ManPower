@@ -37,6 +37,13 @@ export function AppHeader() {
         ) : null}
         {hasAnyPermission(user, OVERSEAS_READ_KEYS) ? <Link href="/app/overseas">Overseas</Link> : null}
         {hasPermission(user, 'operations.license.read') ? <Link href="/app/licenses">Licenses</Link> : null}
+        {hasPermission(user, 'finance.wallet.read') ? <Link href="/app/finance">Finance</Link> : null}
+        {hasPermission(user, 'finance.fx_rate.manage') || hasPermission(user, 'finance.read') ? (
+          <Link href="/app/finance/fx">FX rates</Link>
+        ) : null}
+        {hasPermission(user, 'finance.reconciliation.read') ? (
+          <Link href="/app/finance/recon">Reconciliation</Link>
+        ) : null}
         <button type="button" onClick={() => void logout().then(() => router.replace('/login'))}>
           Sign out
         </button>

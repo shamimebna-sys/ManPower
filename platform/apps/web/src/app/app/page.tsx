@@ -53,6 +53,9 @@ export default function AuthenticatedShellPage() {
           {hasPermission(user, 'operations.license.read') ? (
             <Link className="button-link" href="/app/licenses">Open licenses</Link>
           ) : null}
+          {hasPermission(user, 'finance.wallet.read') ? (
+            <Link className="button-link" href="/app/finance">Open finance</Link>
+          ) : null}
         </p>
       </main>
     </section>
