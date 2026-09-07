@@ -73,9 +73,9 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 security integration', () => {
       create: { key: 'super_admin', name: 'Super Admin', isSystem: true },
       update: {},
     });
-    const employee = await db.role.upsert({
-      where: { key: 'employee' },
-      create: { key: 'employee', name: 'Employee' },
+    const unprivileged = await db.role.upsert({
+      where: { key: 'ci_unprivileged_employee' },
+      create: { key: 'ci_unprivileged_employee', name: 'CI Unprivileged Employee' },
       update: {},
     });
     const agent = await db.role.upsert({
@@ -94,10 +94,8 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 security integration', () => {
         })
       )
     );
-    // Isolate this suite from M4/M5/M6 grant seeds on the shared CI database.
-    // The viewer fixture is an employee with no candidate.read. Do not rely on
-    // leftover runtime grants from other integration files.
-    await db.rolePermission.deleteMany({ where: { roleId: employee.id } });
+    // Viewer has an isolated role with no grants. Do not strip the shared
+    // employee role — that races M6/M7 suites on the same CI database.
     const read = permissions.find((permission) => permission.key === 'candidate.read');
     if (!read) {
       throw new Error('Required candidate permissions are missing');
@@ -143,9 +141,10 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 security integration', () => {
       create: { userId: adminUser.id, roleId: superAdmin.id },
       update: {},
     });
+    await db.userRole.deleteMany({ where: { userId: viewerUser.id } });
     await db.userRole.upsert({
-      where: { userId_roleId: { userId: viewerUser.id, roleId: employee.id } },
-      create: { userId: viewerUser.id, roleId: employee.id },
+      where: { userId_roleId: { userId: viewerUser.id, roleId: unprivileged.id } },
+      create: { userId: viewerUser.id, roleId: unprivileged.id },
       update: {},
     });
     await db.userRole.upsert({
@@ -167,7 +166,7 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 security integration', () => {
         passportNo: `SECA${stamp}`,
         agentId: 10,
         classGroupId: 1,
-        code: `9SA${stamp}`.slice(0, 10),
+        code: `9SA${stamp}`,
       },
     });
     const candidateB = await db.candidate.create({
@@ -178,7 +177,7 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 security integration', () => {
         passportNo: `SECB${stamp}`,
         agentId: 20,
         classGroupId: 1,
-        code: `9SB${stamp}`.slice(0, 10),
+        code: `9SB${stamp}`,
       },
     });
     const education = await db.candidateEducation.create({
@@ -301,7 +300,7 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 security integration', () => {
         passportNo: `BDA${mark}`,
         agentId: agentA.sourceLegacyId,
         classGroupId: 1,
-        code: `9BA${mark}`.slice(0, 10),
+        code: `9BA${mark}`,
       },
     });
     const hidden = await db.candidate.create({
@@ -312,7 +311,7 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 security integration', () => {
         passportNo: `BDB${mark}`,
         agentId: agentB.sourceLegacyId,
         classGroupId: 1,
-        code: `9BB${mark}`.slice(0, 10),
+        code: `9BB${mark}`,
       },
     });
     const agentRole = await db.role.findUnique({ where: { key: 'agent' } });

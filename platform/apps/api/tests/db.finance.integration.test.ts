@@ -453,4 +453,110 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 M7 finance integration', () =>
     expect(badge.stepNo).toBe(9);
     expect(badge.name).toBe('Manpower Status');
   });
+
+  it('enforces M7 accounting invariants in PostgreSQL', async () => {
+    const version = await db.$queryRaw<Array<{ version: string }>>`SELECT version()`;
+    expect(version[0]?.version).toMatch(/PostgreSQL 16\./);
+    expect(version[0]?.version).not.toMatch(/PostgreSQL 1[78]/);
+
+    const unbalanced = await db.$queryRaw<Array<{ id: string }>>`
+      SELECT j.id
+      FROM finance.journal_entries j
+      JOIN finance.journal_lines l ON l.journal_id = j.id
+      WHERE j.status = 'POSTED'
+      GROUP BY j.id
+      HAVING COALESCE(SUM(CASE WHEN l.side = 'DEBIT' THEN l.base_amount ELSE 0 END), 0)
+           <> COALESCE(SUM(CASE WHEN l.side = 'CREDIT' THEN l.base_amount ELSE 0 END), 0)
+          OR COUNT(*) < 2
+    `;
+    expect(unbalanced).toEqual([]);
+
+    const reconstructed = await db.$queryRaw<Array<{ source_payment_id: string; journals: bigint }>>`
+      SELECT source_payment_id, COUNT(DISTINCT journal_id) AS journals
+      FROM finance.reconstruction_manifests
+      GROUP BY source_payment_id
+      HAVING COUNT(DISTINCT journal_id) <> 1
+    `;
+    expect(reconstructed).toEqual([]);
+
+    const overlap = await db.$queryRaw<Array<{ source_payment_id: string }>>`
+      SELECT r.source_payment_id
+      FROM finance.reconstruction_manifests r
+      JOIN finance.opening_manifests o ON o.source_payment_id = r.source_payment_id
+    `;
+    expect(overlap).toEqual([]);
+
+    const historicalRates = await db.$queryRaw<Array<{ n: bigint }>>`
+      SELECT COUNT(*)::bigint AS n
+      FROM finance.reconstruction_manifests r
+      JOIN finance.journal_lines l ON l.journal_id = r.journal_id
+      WHERE r.currency_code = 'BDT'
+        AND l.fx_rate <> r.source_exchange_rate
+    `;
+    expect(Number(historicalRates[0]?.n ?? 1)).toBe(0);
+
+    const m8 = await db.$queryRaw<Array<{ table_name: string }>>`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_name IN (
+        'invoices', 'invoice_receipts', 'ticket_invoices', 'ticket_receipts', 'ticket_invoice_lines'
+      )
+    `;
+    expect(m8).toEqual([]);
+
+    const currencies = await db.$queryRaw<Array<{ code: string }>>`
+      SELECT code FROM finance.currencies ORDER BY code
+    `;
+    expect(currencies.map((row) => row.code)).toEqual(['BDT', 'EUR']);
+
+    const fx = await db.$queryRaw<Array<{ n: bigint }>>`
+      SELECT COUNT(*)::bigint AS n FROM finance.fx_rate_entries
+    `;
+    expect(Number(fx[0]?.n ?? 0)).toBeGreaterThan(0);
+
+    const posted = await db.$queryRaw<Array<{ id: string }>>`
+      SELECT id FROM finance.journal_entries WHERE status = 'POSTED' LIMIT 1
+    `;
+    expect(posted[0]?.id).toBeTruthy();
+    const postedId = posted[0]!.id;
+    await expect(
+      db.$executeRaw`UPDATE finance.journal_entries SET entry_type = 'REVERSAL' WHERE id = ${postedId}::uuid`
+    ).rejects.toThrow(/immutable|cannot be deleted/i);
+    await expect(
+      db.$executeRaw`DELETE FROM finance.journal_entries WHERE id = ${postedId}::uuid`
+    ).rejects.toThrow(/cannot be deleted|immutable/i);
+    await expect(
+      db.$executeRaw`UPDATE finance.journal_lines SET amount = amount + 1 WHERE journal_id = ${postedId}::uuid`
+    ).rejects.toThrow(/immutable|cannot be deleted/i);
+
+    const driftedWallets = await db.$queryRaw<Array<{ id: string }>>`
+      SELECT w.id
+      FROM finance.wallets w
+      WHERE w.projected_available_eur IS NOT NULL
+        AND w.projected_available_eur <> (
+          SELECT COALESCE(SUM(
+            CASE WHEN l.side = 'CREDIT' THEN l.base_amount ELSE -l.base_amount END
+          ), 0)
+          FROM finance.wallet_accounts a
+          JOIN finance.journal_lines l ON l.wallet_account_id = a.id
+          JOIN finance.journal_entries j ON j.id = l.journal_id
+          WHERE a.wallet_id = w.id AND j.status = 'POSTED'
+        )
+    `;
+    expect(driftedWallets).toEqual([]);
+
+    const newBdtWithoutAdmin = await db.$queryRaw<Array<{ id: string }>>`
+      SELECT j.id
+      FROM finance.journal_entries j
+      WHERE j.status = 'POSTED'
+        AND j.source_type = 'wallet_deposit'
+        AND j.entry_type = 'WALLET_DEPOSIT'
+        AND j.fx_rate_entry_id IS NULL
+        AND EXISTS (
+          SELECT 1 FROM finance.journal_lines l
+          WHERE l.journal_id = j.id AND l.currency_code = 'BDT'
+        )
+    `;
+    expect(newBdtWithoutAdmin).toEqual([]);
+  });
 });

@@ -164,8 +164,10 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 M5 training integration', () =
     const passGroup = await db.classGroup.create({
       data: { name: 'Rapid Final', code: 'RF', sourceLegacyId: BigInt(`${stamp}42`) },
     });
-    const failGroup = await db.classGroup.create({
-      data: { name: 'Admission For Interview', code: '801', sourceLegacyId: 1n },
+    const failGroup = await db.classGroup.upsert({
+      where: { sourceLegacyId: 1n },
+      create: { name: 'Admission For Interview', code: '801', sourceLegacyId: 1n },
+      update: {},
     });
     groupPassId = passGroup.id;
     groupFailId = failGroup.id;
