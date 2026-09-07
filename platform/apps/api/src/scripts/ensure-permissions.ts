@@ -5,6 +5,7 @@ import {
   M4_ROLE_GRANTS,
   M5_ROLE_GRANTS,
   M6_ROLE_GRANTS,
+  M7_ROLE_GRANTS,
 } from '../iam/permission-catalogue.js';
 
 /**
@@ -56,7 +57,7 @@ async function main(): Promise<void> {
     )
   );
 
-  for (const grants of [M4_ROLE_GRANTS, M5_ROLE_GRANTS, M6_ROLE_GRANTS]) {
+  for (const grants of [M4_ROLE_GRANTS, M5_ROLE_GRANTS, M6_ROLE_GRANTS, M7_ROLE_GRANTS]) {
     for (const [roleKey, keys] of Object.entries(grants)) {
       const role = roleByKey.get(roleKey);
       if (!role) {
@@ -81,7 +82,7 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    `Ensured ${permissions.length} permissions, ${roles.length} roles, and M4+M5+M6 grants.`
+    `Ensured ${permissions.length} permissions, ${roles.length} roles, and M4+M5+M6+M7 grants.`
   );
 }
 

@@ -49,6 +49,15 @@ export const FOUNDATION_PERMISSIONS = [
   ['overseas.flight.manage', 'Create and update flight schedule records'],
   ['operations.license.read', 'Read companier licenses'],
   ['operations.license.manage', 'Create and update companier licenses'],
+  ['finance.read', 'Read finance requests, wallets, and recon reports'],
+  ['finance.wallet.read', 'Read derived wallet balances and history'],
+  ['finance.payment_request.create', 'Create pending payment requests'],
+  ['finance.payment_request.approve', 'Approve payment requests and post fee journals'],
+  ['finance.payment_request.reject', 'Reject payment requests and post A18 zero journals'],
+  ['finance.journal.read', 'Read posted and reversed journals'],
+  ['finance.reconciliation.read', 'Read reconciliation gates and quarantine'],
+  ['finance.administration', 'Opening sign-off, reversal, quarantine resolve'],
+  ['finance.fx_rate.manage', 'Enter administrative FX rates for new posts'],
 ] as const;
 
 export const APPROVED_ROLES = [
@@ -203,4 +212,43 @@ export const M6_ROLE_GRANTS: Record<string, readonly string[]> = {
   agent: M6_SCOPED_OVERSEAS_KEYS,
   sub_agent: M6_SCOPED_OVERSEAS_KEYS,
   agency: M6_SCOPED_OVERSEAS_KEYS,
+};
+
+export const M7_PERMISSION_KEYS = [
+  'finance.read',
+  'finance.wallet.read',
+  'finance.payment_request.create',
+  'finance.payment_request.approve',
+  'finance.payment_request.reject',
+  'finance.journal.read',
+  'finance.reconciliation.read',
+  'finance.administration',
+  'finance.fx_rate.manage',
+] as const;
+
+const M7_STAFF_KEYS = [...M7_PERMISSION_KEYS];
+const M7_AGENT_KEYS = [
+  'finance.read',
+  'finance.wallet.read',
+  'finance.payment_request.create',
+] as const;
+
+/**
+ * Exact M7 runtime matrix. No *.delete. Teacher/company/candidate/employer/agency
+ * receive no finance keys. Agent/sub_agent are wallet-scoped in access helpers.
+ */
+export const M7_ROLE_GRANTS: Record<string, readonly string[]> = {
+  owner: M7_STAFF_KEYS,
+  administrator: M7_STAFF_KEYS,
+  employee: [
+    'finance.read',
+    'finance.wallet.read',
+    'finance.payment_request.create',
+    'finance.payment_request.approve',
+    'finance.payment_request.reject',
+    'finance.journal.read',
+    'finance.reconciliation.read',
+  ],
+  agent: M7_AGENT_KEYS,
+  sub_agent: M7_AGENT_KEYS,
 };

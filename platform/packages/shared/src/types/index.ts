@@ -6,3 +6,4 @@ export type * from './profile.js';
 export type * from './recruitment.js';
 export type * from './training.js';
 export type * from './overseas.js';
+export type * from './finance.js';

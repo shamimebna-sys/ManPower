@@ -71,6 +71,20 @@ export const AUDIT_EVENTS = {
   OVERSEAS_LICENSE_CREATED: 'overseas.license.created',
   OVERSEAS_LICENSE_UPDATED: 'overseas.license.updated',
   OVERSEAS_STATUS_CHANGED: 'overseas.status.changed',
+  PAYMENT_REQUEST_CREATED: 'payment_request.created',
+  PAYMENT_REQUEST_APPROVED: 'payment_request.approved',
+  PAYMENT_REQUEST_REJECTED: 'payment_request.rejected',
+  JOURNAL_POSTED: 'journal.posted',
+  JOURNAL_REVERSED: 'journal.reversed',
+  WALLET_DEPOSIT_CREATED: 'wallet_deposit.created',
+  WALLET_DEPOSIT_APPROVED: 'wallet_deposit.approved',
+  FX_RATE_ENTERED: 'fx_rate.entered',
+  OPENING_BALANCE_IMPORTED: 'opening_balance.imported',
+  OPENING_BALANCE_APPROVED: 'opening_balance.approved',
+  RECONCILIATION_COMPLETED: 'reconciliation.completed',
+  QUARANTINE_CREATED: 'quarantine.created',
+  QUARANTINE_RESOLVED: 'quarantine.resolved',
+  HISTORICAL_JOURNAL_IMPORTED: 'historical_journal.imported',
 } as const;
 
 interface AuditInput {

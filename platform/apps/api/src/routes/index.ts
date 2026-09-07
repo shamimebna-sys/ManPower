@@ -14,6 +14,7 @@ import { manpowerTrainingsRouter } from './manpower-trainings.js';
 import { createOverseasDocumentsRouter } from './overseas-documents.js';
 import { licensesRouter } from './licenses.js';
 import { liveStatusRouter } from './live-status.js';
+import { financeRouter } from './finance.js';
 
 /**
  * Root API router.
@@ -50,6 +51,7 @@ export function createRouter(): Router {
   router.use('/v1/overseas', createOverseasDocumentsRouter());
   router.use('/v1/licenses', licensesRouter);
   router.use('/v1/live-status', liveStatusRouter);
+  router.use('/v1/finance', financeRouter);
 
   return router;
 }

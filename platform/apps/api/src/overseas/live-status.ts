@@ -1,5 +1,6 @@
 import type { LiveStatusBadgeRecord } from '@manpower/shared';
 import type { Prisma, PrismaClient } from '@prisma/client';
+import { MANPOWER_TITLE } from '../finance/money.js';
 import { LATEST_ORDER } from './latest.js';
 
 export const LIVE_STATUS_LABELS: Record<number, string> = {
@@ -30,8 +31,8 @@ function formatFlightExtra(row: {
 /**
  * Compatibility waterfall matching CommonClass::liveStatus().
  * Step 5 is skipped. Medical and ARC are off the ladder.
- * Step 9 (manpower payment) is M7 and is not evaluated here.
- * Finance tables are out of M6. This is a read-only derivation; it never writes
+ * Step 9 (manpower payment) uses exact bill title `Manpower Fee` and status A (DR-F2).
+ * Finance tables are M7. This is a read-only derivation; it never writes
  * candidates.status.
  */
 export async function deriveLiveStatus(db: Db, candidateId: string): Promise<LiveStatusBadgeRecord> {
@@ -40,6 +41,11 @@ export async function deriveLiveStatus(db: Db, candidateId: string): Promise<Liv
   if (flight) {
     return badge(candidateId, 10, formatFlightExtra(flight));
   }
+
+  const manpowerPaid = await db.paymentRequest.findFirst({
+    where: { candidateId, status: 'A', billTitle: MANPOWER_TITLE },
+  });
+  if (manpowerPaid) return badge(candidateId, 9, null);
 
   const visa = await db.visaImmigration.findFirst(args);
   if (visa) return badge(candidateId, 8, null);
