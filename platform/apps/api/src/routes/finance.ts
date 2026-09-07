@@ -62,6 +62,26 @@ import { isUniqueConflict } from '../training/util.js';
 export const financeRouter: ExpressRouter = Router();
 financeRouter.use(requireAuth);
 
+function isSerializationConflict(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null || !('code' in error)) return false;
+  if (error.code === 'P2034') return true;
+  if (error.code !== 'P2010' || !('meta' in error)) return false;
+  const meta = error.meta;
+  return typeof meta === 'object' && meta !== null && 'code' in meta && meta.code === '40001';
+}
+
+async function serializableTransaction<T>(
+  operation: (tx: Prisma.TransactionClient) => Promise<T>
+): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await prisma.$transaction(operation, { isolationLevel: POSTING_ISOLATION });
+    } catch (error) {
+      if (!isSerializationConflict(error) || attempt >= 3) throw error;
+    }
+  }
+}
+
 financeRouter.get('/wallets', requirePermission('finance.wallet.read'), async (req: Request, res: Response) => {
   if (!req.auth) throw AppError.unauthorized();
   const actor = req.auth.user;
@@ -243,7 +263,7 @@ financeRouter.post(
     if (!req.auth) throw AppError.unauthorized();
     const actorUserId = req.auth.user.id;
     const { id } = PaymentRequestIdParams.parse(req.params);
-    const result = await prisma.$transaction(
+    const result = await serializableTransaction(
       async (tx) => {
         await tx.$queryRaw`SELECT id FROM finance.payment_requests WHERE id = ${id}::uuid FOR UPDATE`;
         const requestRow = await tx.paymentRequest.findUnique({ where: { id } });
@@ -300,8 +320,7 @@ financeRouter.post(
           include: { lines: { orderBy: { lineNo: 'asc' } } },
         });
         return { request: updated, journal: loaded };
-      },
-      { isolationLevel: POSTING_ISOLATION }
+      }
     );
     const body: ApiResponse<{ request: PaymentRequestRecord; journal: JournalRecord }> = {
       success: true,
