@@ -94,6 +94,10 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 security integration', () => {
         })
       )
     );
+    // Isolate this suite from M4/M5/M6 grant seeds on the shared CI database.
+    // The viewer fixture is an employee with no candidate.read. Do not rely on
+    // leftover runtime grants from other integration files.
+    await db.rolePermission.deleteMany({ where: { roleId: employee.id } });
     const read = permissions.find((permission) => permission.key === 'candidate.read');
     if (!read) {
       throw new Error('Required candidate permissions are missing');

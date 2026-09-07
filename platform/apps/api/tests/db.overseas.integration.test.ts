@@ -80,6 +80,7 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 M6 overseas integration', () =
         })
       )
     );
+    const grantUpserts: Array<ReturnType<typeof db.rolePermission.upsert>> = [];
     for (const grants of [M4_ROLE_GRANTS, M6_ROLE_GRANTS]) {
       for (const [roleKey, keys] of Object.entries(grants)) {
         const role = roleByKey.get(roleKey);
@@ -87,14 +88,17 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 M6 overseas integration', () =
         for (const key of keys) {
           const permission = permissionByKey.get(key);
           if (!permission) throw new Error(`permission ${key} missing`);
-          await db.rolePermission.upsert({
-            where: { roleId_permissionId: { roleId: role.id, permissionId: permission.id } },
-            create: { roleId: role.id, permissionId: permission.id },
-            update: {},
-          });
+          grantUpserts.push(
+            db.rolePermission.upsert({
+              where: { roleId_permissionId: { roleId: role.id, permissionId: permission.id } },
+              create: { roleId: role.id, permissionId: permission.id },
+              update: {},
+            })
+          );
         }
       }
     }
+    await Promise.all(grantUpserts);
 
     const stamp = `${Date.now()}`;
     const agentMaster = await db.agent.create({ data: { name: 'M6 Agent', sourceLegacyId: BigInt(`${stamp}1`) } });
@@ -186,18 +190,20 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 M6 overseas integration', () =
       if (!role) throw new Error(`role ${key} missing`);
       return role.id;
     };
-    await db.userRole.create({ data: { userId: ownerUser.id, roleId: requireRole('owner') } });
-    await db.userRole.create({ data: { userId: adminUser.id, roleId: requireRole('administrator') } });
-    await db.userRole.create({ data: { userId: employeeUser.id, roleId: requireRole('employee') } });
-    await db.userRole.create({ data: { userId: superAdminUser.id, roleId: requireRole('super_admin') } });
-    await db.userRole.create({ data: { userId: agentUser.id, roleId: requireRole('agent') } });
-    await db.userRole.create({ data: { userId: subAgentUser.id, roleId: requireRole('sub_agent') } });
-    await db.userRole.create({ data: { userId: agencyUser.id, roleId: requireRole('agency') } });
-    await db.userRole.create({ data: { userId: unboundAgent.id, roleId: requireRole('agent') } });
-    await db.userRole.create({ data: { userId: companyUser.id, roleId: requireRole('company') } });
-    await db.userRole.create({ data: { userId: teacherUser.id, roleId: requireRole('teacher') } });
-    await db.userRole.create({ data: { userId: employerUser.id, roleId: requireRole('employer') } });
-    await db.userRole.create({ data: { userId: candidateUser.id, roleId: requireRole('candidate') } });
+    await Promise.all([
+      db.userRole.create({ data: { userId: ownerUser.id, roleId: requireRole('owner') } }),
+      db.userRole.create({ data: { userId: adminUser.id, roleId: requireRole('administrator') } }),
+      db.userRole.create({ data: { userId: employeeUser.id, roleId: requireRole('employee') } }),
+      db.userRole.create({ data: { userId: superAdminUser.id, roleId: requireRole('super_admin') } }),
+      db.userRole.create({ data: { userId: agentUser.id, roleId: requireRole('agent') } }),
+      db.userRole.create({ data: { userId: subAgentUser.id, roleId: requireRole('sub_agent') } }),
+      db.userRole.create({ data: { userId: agencyUser.id, roleId: requireRole('agency') } }),
+      db.userRole.create({ data: { userId: unboundAgent.id, roleId: requireRole('agent') } }),
+      db.userRole.create({ data: { userId: companyUser.id, roleId: requireRole('company') } }),
+      db.userRole.create({ data: { userId: teacherUser.id, roleId: requireRole('teacher') } }),
+      db.userRole.create({ data: { userId: employerUser.id, roleId: requireRole('employer') } }),
+      db.userRole.create({ data: { userId: candidateUser.id, roleId: requireRole('candidate') } }),
+    ]);
 
     const candidateA = await db.candidate.create({
       data: {
@@ -242,19 +248,34 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 M6 overseas integration', () =
     subCandidateId = subCandidate.id;
     agencyCandidateId = agencyCandidate.id;
     paymentFkBefore = { admission: candidateA.admissionPaymentId, medical: candidateA.medicalFeePaymentId };
-    ownerSession = await openSession(ownerUser.id);
-    adminSession = await openSession(adminUser.id);
-    employeeSession = await openSession(employeeUser.id);
-    superAdminSession = await openSession(superAdminUser.id);
-    agentSession = await openSession(agentUser.id);
-    subAgentSession = await openSession(subAgentUser.id);
-    agencySession = await openSession(agencyUser.id);
-    unboundAgentSession = await openSession(unboundAgent.id);
-    companySession = await openSession(companyUser.id);
-    teacherSession = await openSession(teacherUser.id);
-    employerSession = await openSession(employerUser.id);
-    candidateSession = await openSession(candidateUser.id);
-  });
+    [
+      ownerSession,
+      adminSession,
+      employeeSession,
+      superAdminSession,
+      agentSession,
+      subAgentSession,
+      agencySession,
+      unboundAgentSession,
+      companySession,
+      teacherSession,
+      employerSession,
+      candidateSession,
+    ] = await Promise.all([
+      openSession(ownerUser.id),
+      openSession(adminUser.id),
+      openSession(employeeUser.id),
+      openSession(superAdminUser.id),
+      openSession(agentUser.id),
+      openSession(subAgentUser.id),
+      openSession(agencyUser.id),
+      openSession(unboundAgent.id),
+      openSession(companyUser.id),
+      openSession(teacherUser.id),
+      openSession(employerUser.id),
+      openSession(candidateUser.id),
+    ]);
+  }, 60_000);
 
   afterAll(async () => {
     await db.$disconnect();
