@@ -132,6 +132,7 @@ const candidate = {
   updatedAt: new Date('2026-01-01T00:00:00.000Z'),
   agentId: 10n,
   classGroupId: 3n,
+  classGroupRefId: null,
   remarks: null,
   replacementRemarks: null,
   admissionPaymentId: null,

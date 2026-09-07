@@ -5,6 +5,12 @@ import { iamRouter } from './iam.js';
 import { candidatesRouter } from './candidates.js';
 import { partnersRouter } from './partners.js';
 import { employerCandidatesRouter } from './employer-candidates.js';
+import { teachersRouter } from './teachers.js';
+import { classGroupsRouter } from './class-groups.js';
+import { classSchedulesRouter } from './class-schedules.js';
+import { examsRouter } from './exams.js';
+import { examResultsRouter } from './exam-results.js';
+import { manpowerTrainingsRouter } from './manpower-trainings.js';
 
 /**
  * Root API router.
@@ -32,6 +38,12 @@ export function createRouter(): Router {
   router.use('/v1/candidates', candidatesRouter);
   router.use('/v1/partners', partnersRouter);
   router.use('/v1/employer-candidates', employerCandidatesRouter);
+  router.use('/v1/teachers', teachersRouter);
+  router.use('/v1/class-groups', classGroupsRouter);
+  router.use('/v1/class-schedules', classSchedulesRouter);
+  router.use('/v1/exams', examsRouter);
+  router.use('/v1/exam-results', examResultsRouter);
+  router.use('/v1/manpower-trainings', manpowerTrainingsRouter);
 
   return router;
 }

@@ -18,7 +18,7 @@ Recruitment record: `docs/M4-RECRUITMENT.md`.
 | `company` | `candidate.read` | `candidates.companier_id = bound Companier.source_legacy_id` | granted | scoped |
 | `candidate` | `candidate.read`, `employer_candidate.read` | own candidate UUID | granted | self |
 | `employer` | `employer_candidate.read/manage` | own employer UUID | granted | assignment only |
-| `teacher` | none | BLOCKED | none | blocked pending M5 |
+| `teacher` | none of the 24 M4 keys | BLOCKED for candidates | none | M5 adds self-scoped `training.teacher.read` only |
 
 Defined keys:
 

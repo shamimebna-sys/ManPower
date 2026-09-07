@@ -194,6 +194,7 @@ describe('M4 recruitment API', () => {
       companierId: null,
       candidateId: null,
       employerId: null,
+      teacherId: null,
     });
     mocks.tx.agent.findUnique.mockResolvedValue({ id: agent.id });
     mocks.tx.user.update.mockResolvedValue({
@@ -203,6 +204,7 @@ describe('M4 recruitment API', () => {
       companierId: null,
       candidateId: null,
       employerId: null,
+      teacherId: null,
     });
     const response = await auth(request(app).put(`/api/v1/iam/users/${admin.id}/bindings`)).send({
       domain: 'agent',
@@ -224,6 +226,7 @@ describe('M4 recruitment API', () => {
       companierId: null,
       candidateId: null,
       employerId: null,
+      teacherId: null,
     });
     const conflict = await auth(request(app).put(`/api/v1/iam/users/${admin.id}/bindings`)).send({
       domain: 'companier',

@@ -23,6 +23,18 @@ export function AppHeader() {
         {hasPermission(user, 'employer_candidate.read') ? (
           <Link href="/app/employer-candidates">Assignments</Link>
         ) : null}
+        {hasPermission(user, 'training.teacher.read') ? <Link href="/app/teachers">Teachers</Link> : null}
+        {hasPermission(user, 'training.class_group.read') ? (
+          <Link href="/app/class-groups">Class groups</Link>
+        ) : null}
+        {hasPermission(user, 'training.schedule.read') ? <Link href="/app/schedules">Schedules</Link> : null}
+        {hasPermission(user, 'training.exam.read') ? <Link href="/app/exams">Exams</Link> : null}
+        {hasPermission(user, 'training.exam_result.read') ? (
+          <Link href="/app/exam-results">Results</Link>
+        ) : null}
+        {hasPermission(user, 'training.manpower.read') ? (
+          <Link href="/app/manpower-trainings">Manpower training</Link>
+        ) : null}
         <button type="button" onClick={() => void logout().then(() => router.replace('/login'))}>
           Sign out
         </button>

@@ -1,6 +1,6 @@
 export type PartnerType = 'agent' | 'sub_agent' | 'agencier' | 'companier';
 
-export type BindingDomain = PartnerType | 'candidate' | 'employer';
+export type BindingDomain = PartnerType | 'candidate' | 'employer' | 'teacher';
 
 export type EmployerCandidatePurpose = 'FAVORITE' | 'RESERVE' | 'SELECTED';
 

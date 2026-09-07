@@ -1,5 +1,10 @@
 import { prisma } from '../lib/prisma.js';
-import { APPROVED_ROLES, FOUNDATION_PERMISSIONS, M4_ROLE_GRANTS } from '../iam/permission-catalogue.js';
+import {
+  APPROVED_ROLES,
+  FOUNDATION_PERMISSIONS,
+  M4_ROLE_GRANTS,
+  M5_ROLE_GRANTS,
+} from '../iam/permission-catalogue.js';
 
 /**
  * Upserts the permission catalogue, approved roles, super_admin grants,
@@ -50,30 +55,32 @@ async function main(): Promise<void> {
     )
   );
 
-  for (const [roleKey, keys] of Object.entries(M4_ROLE_GRANTS)) {
-    const role = roleByKey.get(roleKey);
-    if (!role) {
-      throw new Error(`Approved role ${roleKey} is missing.`);
+  for (const grants of [M4_ROLE_GRANTS, M5_ROLE_GRANTS]) {
+    for (const [roleKey, keys] of Object.entries(grants)) {
+      const role = roleByKey.get(roleKey);
+      if (!role) {
+        throw new Error(`Approved role ${roleKey} is missing.`);
+      }
+      await Promise.all(
+        keys.map((permissionKey) => {
+          const permission = permissionByKey.get(permissionKey);
+          if (!permission) {
+            throw new Error(`Permission ${permissionKey} is missing.`);
+          }
+          return prisma.rolePermission.upsert({
+            where: {
+              roleId_permissionId: { roleId: role.id, permissionId: permission.id },
+            },
+            create: { roleId: role.id, permissionId: permission.id },
+            update: {},
+          });
+        })
+      );
     }
-    await Promise.all(
-      keys.map((permissionKey) => {
-        const permission = permissionByKey.get(permissionKey);
-        if (!permission) {
-          throw new Error(`Permission ${permissionKey} is missing.`);
-        }
-        return prisma.rolePermission.upsert({
-          where: {
-            roleId_permissionId: { roleId: role.id, permissionId: permission.id },
-          },
-          create: { roleId: role.id, permissionId: permission.id },
-          update: {},
-        });
-      })
-    );
   }
 
   console.log(
-    `Ensured ${permissions.length} permissions, ${roles.length} roles, and M4 grants.`
+    `Ensured ${permissions.length} permissions, ${roles.length} roles, and M4+M5 grants.`
   );
 }
 

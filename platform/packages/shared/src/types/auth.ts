@@ -17,6 +17,7 @@ export interface UserBindings {
   companierId: string | null;
   candidateId: string | null;
   employerId: string | null;
+  teacherId: string | null;
 }
 
 export interface AuthenticatedUser {

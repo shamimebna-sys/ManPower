@@ -23,6 +23,18 @@ export const FOUNDATION_PERMISSIONS = [
   ['partners.user_binding.manage', 'Bind and unbind user partner and self identities'],
   ['employer_candidate.read', 'Read employer-candidate assignments'],
   ['employer_candidate.manage', 'Create and update employer-candidate assignments'],
+  ['training.teacher.read', 'Read teacher person master'],
+  ['training.teacher.manage', 'Create and update teacher person master'],
+  ['training.class_group.read', 'Read class groups'],
+  ['training.class_group.manage', 'Create and update class groups'],
+  ['training.schedule.read', 'Read class schedules'],
+  ['training.schedule.manage', 'Create and update class schedules'],
+  ['training.exam.read', 'Read exams and exam class-group membership'],
+  ['training.exam.manage', 'Create and update exams and exam class groups'],
+  ['training.exam_result.read', 'Read exam results'],
+  ['training.exam_result.manage', 'Publish and grade exam results'],
+  ['training.manpower.read', 'Read manpower / BMET training evidence'],
+  ['training.manpower.manage', 'Create and update manpower / BMET training evidence'],
 ] as const;
 
 export const APPROVED_ROLES = [
@@ -36,12 +48,13 @@ export const APPROVED_ROLES = [
   ['company', 'Company', 'Companier-scoped candidate access.'],
   ['agency', 'Agency', 'Agencier-scoped candidate access.'],
   ['employee', 'Employee', 'Internal staff with explicit module keys.'],
-  ['teacher', 'Teacher', 'Training staff. Candidate access remains blocked in M4.'],
+  ['teacher', 'Teacher', 'Training staff. Self-scoped teacher read only. No candidate.read.'],
 ] as const;
 
 /**
  * Explicit M4 grants. IAM keys stay super_admin-only.
  * Teacher receives no candidate or recruitment keys.
+ * M5 keys are granted only through M5_ROLE_GRANTS.
  */
 export const M4_ROLE_GRANTS: Record<string, readonly string[]> = {
   administrator: [
@@ -72,3 +85,61 @@ export const M4_ROLE_GRANTS: Record<string, readonly string[]> = {
   employer: ['employer_candidate.read', 'employer_candidate.manage'],
   teacher: [],
 };
+
+/**
+ * Exact approved M5 runtime matrix.
+ * Administrator has NO exam / exam_result keys.
+ * Teacher has teacher.read only (self-scoped in access helpers) and NO candidate.read.
+ * Agent / sub_agent / agency manpower access is candidate-scoped in access helpers.
+ */
+export const M5_ROLE_GRANTS: Record<string, readonly string[]> = {
+  owner: [
+    'training.teacher.read',
+    'training.teacher.manage',
+    'training.class_group.read',
+    'training.class_group.manage',
+    'training.schedule.read',
+    'training.schedule.manage',
+    'training.exam.read',
+    'training.exam.manage',
+    'training.exam_result.read',
+    'training.exam_result.manage',
+    'training.manpower.read',
+    'training.manpower.manage',
+  ],
+  administrator: [
+    'training.teacher.read',
+    'training.teacher.manage',
+    'training.class_group.read',
+    'training.class_group.manage',
+    'training.schedule.read',
+    'training.schedule.manage',
+    'training.manpower.read',
+    'training.manpower.manage',
+  ],
+  employee: [
+    'training.teacher.read',
+    'training.teacher.manage',
+    'training.manpower.read',
+    'training.manpower.manage',
+  ],
+  teacher: ['training.teacher.read'],
+  agent: ['training.manpower.read', 'training.manpower.manage'],
+  sub_agent: ['training.manpower.read', 'training.manpower.manage'],
+  agency: ['training.manpower.read', 'training.manpower.manage'],
+};
+
+export const M5_PERMISSION_KEYS = [
+  'training.teacher.read',
+  'training.teacher.manage',
+  'training.class_group.read',
+  'training.class_group.manage',
+  'training.schedule.read',
+  'training.schedule.manage',
+  'training.exam.read',
+  'training.exam.manage',
+  'training.exam_result.read',
+  'training.exam_result.manage',
+  'training.manpower.read',
+  'training.manpower.manage',
+] as const;

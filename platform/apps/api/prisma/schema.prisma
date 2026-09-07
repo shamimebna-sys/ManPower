@@ -2,7 +2,8 @@
 // Prisma Schema — ManPower Platform
 // ============================================================
 // M1 foundation + M2 IAM/audit + M3 candidate master + M4 profile children
-// + M4 recruitment (partner masters, user bindings, employer_candidates).
+// + M4 recruitment (partner masters, user bindings, employer_candidates)
+// + M5 training/exam (teachers, class groups, schedules, exams, results, manpower).
 // Sequence candidate.candidate_code_seq allocates new fallback codes (9######).
 // Later business models are added only in approved milestones.
 //
@@ -24,7 +25,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["audit", "candidate", "iam", "migration", "partners"]
+  schemas  = ["audit", "candidate", "iam", "migration", "operations", "partners", "workflow"]
 }
 
 enum AccountStatus {
@@ -52,6 +53,7 @@ model User {
   companierId  String?       @map("companier_id") @db.Uuid
   candidateId  String?       @map("candidate_id") @db.Uuid
   employerId   String?       @map("employer_id") @db.Uuid
+  teacherId    String?       @unique @map("teacher_id") @db.Uuid
 
   roles        UserRole[]
   sessions     Session[]
@@ -61,6 +63,7 @@ model User {
   companier    Companier?    @relation(fields: [companierId], references: [id], onDelete: Restrict)
   candidate    Candidate?    @relation(fields: [candidateId], references: [id], onDelete: Restrict)
   employer     Employer?     @relation(fields: [employerId], references: [id], onDelete: Restrict)
+  teacher      Teacher?      @relation(fields: [teacherId], references: [id], onDelete: Restrict)
 
   @@index([status])
   @@index([agentId])
@@ -69,6 +72,7 @@ model User {
   @@index([companierId])
   @@index([candidateId])
   @@index([employerId])
+  @@index([teacherId])
   @@map("users")
   @@schema("iam")
 }
@@ -230,6 +234,7 @@ model Candidate {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
   agentId   BigInt? @map("agent_id")
   classGroupId BigInt? @map("class_group_id")
+  classGroupRefId String? @map("class_group_ref_id") @db.Uuid
   remarks   String? @db.VarChar(255)
   replacementRemarks String? @map("replacement_remarks") @db.Text
   admissionPaymentId BigInt? @map("admission_payment_id")
@@ -270,6 +275,9 @@ model Candidate {
   trainingRecords CandidateTraining[]
   boundUsers User[]
   employerAssignments EmployerCandidate[]
+  classGroup ClassGroup? @relation(fields: [classGroupRefId], references: [id], onDelete: Restrict)
+  examResults ExamResult[]
+  manpowerTrainings ManpowerTrainingEvent[]
 
   @@unique([email])
   @@unique([mobile])
@@ -278,6 +286,7 @@ model Candidate {
   @@index([name])
   @@index([nid])
   @@index([createdAt])
+  @@index([classGroupRefId])
   @@map("candidates")
   @@schema("candidate")
 }
@@ -628,4 +637,191 @@ model EmployerCandidate {
   @@index([employerId, candidateId, purpose, status])
   @@map("employer_candidates")
   @@schema("partners")
+}
+
+// ============================================================
+// M5 — Training / Exam
+// Teacher is a person/identity master (T5 option B).
+// Identity is NOT candidate authorization and does NOT grant exam access.
+// exams.class_group_id varchar list is NOT reproduced — use exam_class_groups.
+// manpower_training_events is BMET/process evidence, not candidate.trainings.
+// Teacher balance/payments stay out of M5 (finance).
+// M13 maps source rows through migration.legacy_key_map. No production import here.
+// ============================================================
+
+model Teacher {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceLegacyId   BigInt?   @unique @map("source_legacy_id")
+  code             String?   @db.VarChar(100)
+  name             String?   @db.VarChar(255)
+  email            String?   @db.VarChar(255)
+  secondaryEmail   String?   @map("secondary_email") @db.VarChar(255)
+  mobile           String?   @db.VarChar(255)
+  secondaryMobile  String?   @map("secondary_mobile") @db.VarChar(255)
+  emergencyMobile  String?   @map("emergency_mobile") @db.VarChar(255)
+  nid              String?   @db.VarChar(255)
+  passportNo       String?   @map("passport_no") @db.VarChar(255)
+  dob              DateTime? @db.Date
+  gender           String?   @db.VarChar(20)
+  nationality      String?   @db.VarChar(20)
+  fatherName       String?   @map("father_name") @db.VarChar(50)
+  motherName       String?   @map("mother_name") @db.VarChar(50)
+  bloodGroup       String?   @map("blood_group") @db.VarChar(20)
+  status           String    @default("A") @db.VarChar(5)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  boundUsers User[]
+  schedules  ClassSchedule[]
+
+  @@index([status])
+  @@index([name])
+  @@map("teachers")
+  @@schema("operations")
+}
+
+model ClassGroup {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceLegacyId   BigInt?  @unique @map("source_legacy_id")
+  name             String?  @db.VarChar(250)
+  description      String?  @db.VarChar(250)
+  code             String?  @db.VarChar(255)
+  status           String   @default("A") @db.VarChar(5)
+  /// Opaque lineage only. Not a finance write path.
+  feeAmount        Decimal  @default(0) @map("fee_amount") @db.Decimal(20, 6)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByLegacyId BigInt? @map("created_by_legacy_id")
+  updatedByLegacyId BigInt? @map("updated_by_legacy_id")
+
+  candidates     Candidate[]
+  schedules      ClassSchedule[]
+  examGroups     ExamClassGroup[]
+  examResults    ExamResult[]
+
+  @@index([status])
+  @@index([name])
+  @@map("class_groups")
+  @@schema("operations")
+}
+
+model ClassSchedule {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceLegacyId    BigInt?   @unique @map("source_legacy_id")
+  teacherId         String?   @map("teacher_id") @db.Uuid
+  classGroupId      String?   @map("class_group_id") @db.Uuid
+  subject           String?   @db.VarChar(255)
+  startTime         DateTime? @map("start_time") @db.Time(6)
+  endTime           DateTime? @map("end_time") @db.Time(6)
+  weekDay           String?   @map("week_day") @db.VarChar(255)
+  status            String    @default("A") @db.VarChar(1)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByLegacyId BigInt?   @map("created_by_legacy_id")
+  updatedByLegacyId BigInt?   @map("updated_by_legacy_id")
+
+  teacher    Teacher?    @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+  classGroup ClassGroup? @relation(fields: [classGroupId], references: [id], onDelete: Restrict)
+
+  @@index([teacherId])
+  @@index([classGroupId])
+  @@index([status])
+  @@map("class_schedules")
+  @@schema("operations")
+}
+
+model Exam {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceLegacyId    BigInt?   @unique @map("source_legacy_id")
+  name              String?   @db.Text
+  examDate          DateTime? @map("exam_date") @db.Date
+  examTime          DateTime? @map("exam_time") @db.Time(6)
+  examLink          String?   @map("exam_link") @db.Text
+  remarks           String?   @db.Text
+  status            String    @default("A") @db.VarChar(5)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByLegacyId BigInt?   @map("created_by_legacy_id")
+  updatedByLegacyId BigInt?   @map("updated_by_legacy_id")
+
+  classGroups ExamClassGroup[]
+  results     ExamResult[]
+
+  @@index([status])
+  @@index([examDate])
+  @@map("exams")
+  @@schema("operations")
+}
+
+model ExamClassGroup {
+  examId       String   @map("exam_id") @db.Uuid
+  classGroupId String   @map("class_group_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  exam       Exam       @relation(fields: [examId], references: [id], onDelete: Restrict)
+  classGroup ClassGroup @relation(fields: [classGroupId], references: [id], onDelete: Restrict)
+
+  @@id([examId, classGroupId])
+  @@index([classGroupId])
+  @@map("exam_class_groups")
+  @@schema("operations")
+}
+
+model ExamResult {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceLegacyId BigInt?   @unique @map("source_legacy_id")
+  examId         String    @map("exam_id") @db.Uuid
+  candidateId    String    @map("candidate_id") @db.Uuid
+  classGroupId   String?   @map("class_group_id") @db.Uuid
+  abroadEx       Int?      @map("abroad_ex")
+  localEx        Int?      @map("local_ex")
+  bl             Int?
+  skill          Int?
+  english        Int?
+  /// NULL = ungraded. PASS and FAIL are explicit/manual. Score 0 is not ungraded.
+  result         String?   @db.VarChar(5)
+  remarks        String?   @db.VarChar(255)
+  status         String    @default("A") @db.VarChar(5)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  exam       Exam        @relation(fields: [examId], references: [id], onDelete: Restrict)
+  candidate  Candidate   @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  classGroup ClassGroup? @relation(fields: [classGroupId], references: [id], onDelete: Restrict)
+
+  @@unique([examId, candidateId])
+  @@index([candidateId])
+  @@index([classGroupId])
+  @@index([status])
+  @@index([result])
+  @@map("exam_results")
+  @@schema("operations")
+}
+
+/// BMET / process evidence. Separate from candidate.trainings (M3 CV) and from
+/// live-status step 9 (PaymentRequest / manpower payment — not this table).
+model ManpowerTrainingEvent {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceLegacyId        BigInt?   @unique @map("source_legacy_id")
+  candidateId           String    @map("candidate_id") @db.Uuid
+  certificateIssueDate  DateTime? @map("certificate_issue_date") @db.Date
+  certificateExpireDate DateTime? @map("certificate_expire_date") @db.Date
+  certificateFileRef    String?   @map("certificate_file_ref") @db.VarChar(250)
+  manpowerFileRef       String?   @map("manpower_file_ref") @db.VarChar(250)
+  fingerPrintFileRef    String?   @map("finger_print_file_ref") @db.VarChar(250)
+  trainingStartDate     DateTime? @map("training_start_date") @db.Date
+  /// Target spelling. M13 maps legacy traininig_end_date (typo retained in source).
+  trainingEndDate       DateTime? @map("training_end_date") @db.Date
+  status                String    @default("A") @db.VarChar(5)
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdByLegacyId     BigInt?   @map("created_by_legacy_id")
+  updatedByLegacyId     BigInt?   @map("updated_by_legacy_id")
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+
+  @@index([candidateId, createdAt])
+  @@index([candidateId, status])
+  @@map("manpower_training_events")
+  @@schema("workflow")
 }

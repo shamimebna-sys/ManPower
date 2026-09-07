@@ -9,6 +9,7 @@ export const BindingDomainSchema = z.enum([
   'companier',
   'candidate',
   'employer',
+  'teacher',
 ]);
 
 export const PartnerIdParams = z.object({

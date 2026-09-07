@@ -21,6 +21,7 @@ export function toCandidateSummary(candidate: Candidate): CandidateSummary {
     status: candidate.status,
     agentId: bigintToString(candidate.agentId),
     classGroupId: bigintToString(candidate.classGroupId),
+    classGroupRefId: candidate.classGroupRefId,
     createdAt: candidate.createdAt.toISOString(),
   };
 }

@@ -38,6 +38,15 @@ export default function AuthenticatedShellPage() {
           {hasPermission(user, 'employer_candidate.read') ? (
             <Link className="button-link" href="/app/employer-candidates">Open assignments</Link>
           ) : null}
+          {hasPermission(user, 'training.teacher.read') ? (
+            <Link className="button-link" href="/app/teachers">Open teachers</Link>
+          ) : null}
+          {hasPermission(user, 'training.exam.read') ? (
+            <Link className="button-link" href="/app/exams">Open exams</Link>
+          ) : null}
+          {hasPermission(user, 'training.manpower.read') ? (
+            <Link className="button-link" href="/app/manpower-trainings">Open manpower training</Link>
+          ) : null}
         </p>
       </main>
     </section>

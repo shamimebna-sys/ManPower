@@ -234,6 +234,7 @@ iamRouter.put(
           companierId: true,
           candidateId: true,
           employerId: true,
+          teacherId: true,
         },
       });
       if (!current) throw AppError.notFound('User');
@@ -252,11 +253,19 @@ iamRouter.put(
           companierId: true,
           candidateId: true,
           employerId: true,
+          teacherId: true,
         },
       });
+      const teacherBind = input.domain === 'teacher';
       await writeAuditEvent(
         {
-          eventType: input.targetId ? AUDIT_EVENTS.USER_PARTNER_BOUND : AUDIT_EVENTS.USER_PARTNER_UNBOUND,
+          eventType: teacherBind
+            ? input.targetId
+              ? AUDIT_EVENTS.TRAINING_TEACHER_BOUND
+              : AUDIT_EVENTS.TRAINING_TEACHER_UNBOUND
+            : input.targetId
+              ? AUDIT_EVENTS.USER_PARTNER_BOUND
+              : AUDIT_EVENTS.USER_PARTNER_UNBOUND,
           actorUserId: req.auth?.user.id,
           targetType: 'user',
           targetId: userId,

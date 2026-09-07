@@ -11,6 +11,7 @@ export interface CandidateSummary {
   status: string;
   agentId: string | null;
   classGroupId: string | null;
+  classGroupRefId: string | null;
   createdAt: string;
 }
 

@@ -25,7 +25,7 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL integration', () => {
     expect(result[0]?.version).toMatch(/PostgreSQL 16\./i);
   });
 
-  it('has applied M2, M3, and M4 migrations', async () => {
+  it('has applied M2, M3, M4, and M5 migrations', async () => {
     const rows = await db.$queryRaw<Array<{ migration_name: string }>>`
       SELECT migration_name
       FROM _prisma_migrations
@@ -39,6 +39,7 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL integration', () => {
         '20260904010000_m4_candidate_supporting_domains',
         '20260904013000_m4_candidate_code_sequence',
         '20260907010000_m4_recruitment',
+        '20260907020000_m5_training_exam',
       ])
     );
   });
@@ -47,7 +48,7 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL integration', () => {
     const rows = await db.$queryRaw<Array<{ table_name: string }>>`
       SELECT table_name
       FROM information_schema.tables
-      WHERE table_schema IN ('iam', 'audit', 'candidate', 'migration', 'partners')
+      WHERE table_schema IN ('iam', 'audit', 'candidate', 'migration', 'partners', 'operations', 'workflow')
     `;
     const names = rows.map((row) => row.table_name);
     expect(names).toEqual(
@@ -73,6 +74,13 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL integration', () => {
         'companiers',
         'employers',
         'employer_candidates',
+        'teachers',
+        'class_groups',
+        'class_schedules',
+        'exams',
+        'exam_class_groups',
+        'exam_results',
+        'manpower_training_events',
       ])
     );
   });

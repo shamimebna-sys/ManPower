@@ -1,4 +1,4 @@
-# ManPower Platform — Design Gate M3 Candidate (including supporting domains)
+# ManPower Platform — M1–M5 complete; M6 Overseas Processing next
 
 Modern rewrite of the ManPower overseas employment management system.
 
@@ -46,7 +46,9 @@ platform/
 
 **PostgreSQL 16 is the hard-gate database.** CI uses the GitHub Actions service image `postgres:16` (not 17, not 18). Do not point the platform at local PostgreSQL 18, production MariaDB, or production data.
 
-Local `pnpm db:up` uses `postgres:16-alpine` when Docker is available. The Design Gate M4 prerequisite is proven only by the CI job `postgres16-integration`, not by a developer workstation.
+Local `pnpm db:up` uses `postgres:16-alpine` when Docker is available. PostgreSQL 16 is proven only by the CI job `postgres16-integration`, not by a developer workstation.
+
+Latest verified M4 Recruitment CI: commit **`4160aae`** (BUILD/STATIC PASS, UNIT PASS, INTEGRATION PostgreSQL 16 PASS). The earlier PRE-M4 prerequisite proof is commit `d38eba1`.
 
 > **Windows users:** Docker Desktop requires WSL 2 if you want a local PostgreSQL 16 container. It is not required to run UNIT or BUILD/STATIC checks.
 
@@ -202,17 +204,22 @@ Copy `.env.example` to `.env` and configure:
 
 See `docs/M2-IAM-ARCHITECTURE.md`, `docs/M3-CANDIDATE-DOMAIN.md`,
 `docs/M4-CANDIDATE-SUPPORTING-DOMAINS.md`, `docs/M4-LEGACY-FIELD-MAPPING.md`,
-and the PRE-M4 hard-gate evidence:
+`docs/M4-RECRUITMENT.md`, `docs/M4-PERMISSIONS.md`, and the PRE-M4 hard-gate evidence:
 
 | Gate | Status |
 |---|---|
 | A07 RBAC | **DECISION LOCKED** — `docs/PRE-M4-HARD-GATE.md` |
 | A05 Agency / Company | **DECISION LOCKED** — `docs/A05-AGENCY-COMPANY-EVIDENCE.md` |
 | A20 employer_candidates.status | **DECISION LOCKED** — `docs/A20-EMPLOYER-CANDIDATES-STATUS.md` |
-| PostgreSQL 16 HARD GATE | **PASS** — CI `main` commit `d38eba1` |
+| PostgreSQL 16 HARD GATE (PRE-M4) | **PASS** — CI `main` commit `d38eba1` |
+| **M4 Recruitment** | **COMPLETE** — CI commit `4160aae` — `docs/M4-RECRUITMENT.md` |
+| PostgreSQL 16 HARD GATE (M4) | **PASS** — CI commit `4160aae` (BUILD/STATIC, UNIT, INTEGRATION) |
+| **M5 Training / Exam** | **IMPLEMENTED** — `docs/M5-TRAINING.md`, `docs/M5-PERMISSIONS.md` |
+
+M4 APIs: `/api/v1/partners/:type`, `/api/v1/employer-candidates`, `/api/v1/iam/users/:userId/bindings`.  
+M5 APIs: `/api/v1/teachers`, `/api/v1/class-groups`, `/api/v1/class-schedules`, `/api/v1/exams`, `/api/v1/exam-results`, `/api/v1/manpower-trainings`. Teacher candidate access remains blocked. Agency/Company snapshots, finance, and production import are not implemented.
 
 Later business modules remain excluded until their milestone approvals.
-Design Gate M4 Recruitment is implemented. See `docs/M4-RECRUITMENT.md`.
 
 ---
 
@@ -239,15 +246,21 @@ API UNIT:
   tests/audit.test.ts        Audit metadata sanitization
   tests/candidates.test.ts   Candidate CRUD, search, RBAC, audit (mocked)
   tests/profile.test.ts      Education/experience/skills/languages/training (mocked)
+  tests/training.test.ts     Teacher/exam/result/manpower API, IDOR, publish (mocked)
+  tests/training-permissions.test.ts Exact M5 matrix
+  tests/training-access.test.ts Teacher self-scope helpers
+  tests/training-workflow.test.ts PASS/FAIL, five marks, no formula
 
 API INTEGRATION (CI / RUN_DB_TESTS=true only):
   tests/db.integration.test.ts          PostgreSQL 16 schema, FK, sequence, unique, rollback
   tests/db.security.integration.test.ts Live 401 / 403 / CSRF / scope / IDOR / 409 / 422
+  tests/db.training.integration.test.ts M5 PG16 constraints, IDOR, workflow, audit
 
 Web UNIT:
   tests/page.test.tsx        Page render + config validation
   tests/auth-ui.test.tsx     Login and protected shell
   tests/candidates-ui.test.tsx Candidate create form
+  tests/training-ui.test.tsx Permission-gated training navigation and pages
 ```
 
 CI workflow (monorepo root): `.github/workflows/ci.yml`. Duplicate for a `platform/`-only git root: `platform/.github/workflows/ci.yml`. Neither job uses local Docker Desktop or PostgreSQL 18.
@@ -305,8 +318,8 @@ Do not renumber later milestones.
 | M1 | Foundation | ✅ Complete |
 | M2 | Auth / RBAC / Audit | ✅ Complete |
 | M3 | Candidate (master + supporting profile domains) | ✅ Complete |
-| M4 | Recruitment / Partners | ⏳ Not started |
-| M5 | Training / Exam | ⏳ |
+| M4 | Recruitment / Partners | ✅ Complete — CI `4160aae` |
+| M5 | Training / Exam | ✅ Implemented — `docs/M5-TRAINING.md` |
 | M6 | Overseas Processing | ⏳ |
 | M7 | Finance *(blocked: A01+A02)* | ⏳ |
 | M8 | Invoice / Receipt / Ticket | ⏳ |
@@ -319,4 +332,5 @@ Do not renumber later milestones.
 | M15 | Cutover | ⏳ |
 
 Conversation work labeled “M4 Candidate Supporting Domains” completed Design Gate **M3**
-profile children. Design Gate **M4 Recruitment** has not started.
+profile children. Design Gate **M4 Recruitment** is **COMPLETE**. Design Gate **M5 Training/Exam**
+is **IMPLEMENTED**. M13 remains responsible for production migration and orphan quarantine.

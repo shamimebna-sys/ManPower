@@ -9,6 +9,7 @@ const BINDING_FIELDS = [
   'companierId',
   'candidateId',
   'employerId',
+  'teacherId',
 ] as const;
 
 const DOMAIN_FIELD: Record<BindingDomain, (typeof BINDING_FIELDS)[number]> = {
@@ -18,11 +19,12 @@ const DOMAIN_FIELD: Record<BindingDomain, (typeof BINDING_FIELDS)[number]> = {
   companier: 'companierId',
   candidate: 'candidateId',
   employer: 'employerId',
+  teacher: 'teacherId',
 };
 
 type BindingClient = Pick<
   PrismaClient,
-  'agent' | 'subAgent' | 'agencier' | 'companier' | 'candidate' | 'employer' | 'user'
+  'agent' | 'subAgent' | 'agencier' | 'companier' | 'candidate' | 'employer' | 'teacher' | 'user'
 >;
 
 export function emptyBindings(): UserBindings {
@@ -33,6 +35,7 @@ export function emptyBindings(): UserBindings {
     companierId: null,
     candidateId: null,
     employerId: null,
+    teacherId: null,
   };
 }
 
@@ -43,6 +46,7 @@ export function toUserBindings(row: {
   companierId: string | null;
   candidateId: string | null;
   employerId: string | null;
+  teacherId: string | null;
 }): UserBindings {
   return {
     agentId: row.agentId,
@@ -51,6 +55,7 @@ export function toUserBindings(row: {
     companierId: row.companierId,
     candidateId: row.candidateId,
     employerId: row.employerId,
+    teacherId: row.teacherId,
   };
 }
 
@@ -70,7 +75,9 @@ export async function assertBindingTargetExists(
             ? await client.companier.findUnique({ where: { id: targetId }, select: { id: true } })
             : domain === 'candidate'
               ? await client.candidate.findUnique({ where: { id: targetId }, select: { id: true } })
-              : await client.employer.findUnique({ where: { id: targetId }, select: { id: true } });
+              : domain === 'teacher'
+                ? await client.teacher.findUnique({ where: { id: targetId }, select: { id: true } })
+                : await client.employer.findUnique({ where: { id: targetId }, select: { id: true } });
   if (!found) {
     const labels: Record<BindingDomain, string> = {
       agent: 'Agent',
@@ -79,6 +86,7 @@ export async function assertBindingTargetExists(
       companier: 'Companier',
       candidate: 'Candidate',
       employer: 'Employer',
+      teacher: 'Teacher',
     };
     throw AppError.notFound(labels[domain]);
   }

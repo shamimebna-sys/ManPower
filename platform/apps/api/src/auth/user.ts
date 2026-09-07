@@ -16,6 +16,7 @@ interface UserWithRoles {
   companierId?: string | null;
   candidateId?: string | null;
   employerId?: string | null;
+  teacherId?: string | null;
   agent?: PartnerLegacyRef | null;
   subAgent?: PartnerLegacyRef | null;
   agencier?: PartnerLegacyRef | null;
@@ -45,6 +46,7 @@ export function toAuthenticatedUser(user: UserWithRoles): AuthenticatedUser {
     companierId: user.companierId ?? null,
     candidateId: user.candidateId ?? null,
     employerId: user.employerId ?? null,
+    teacherId: user.teacherId ?? null,
   };
 
   const candidateScope: CandidateScopeIds = {
