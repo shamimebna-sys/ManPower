@@ -179,11 +179,12 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 M5 training integration', () =
     examId = exam.id;
     await db.examClassGroup.create({ data: { examId: exam.id, classGroupId: passGroup.id } });
 
+    const mobileBase = stamp.slice(-8);
     const candidateA = await db.candidate.create({
       data: {
         name: 'Cand A',
         email: `m5-a-${stamp}@example.com`,
-        mobile: `017${stamp}1`.slice(0, 14),
+        mobile: `060${mobileBase}`,
         passportNo: `P${stamp}A`,
         agentId: agentMaster.sourceLegacyId,
         classGroupId: passGroup.sourceLegacyId,
@@ -194,7 +195,7 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 M5 training integration', () =
       data: {
         name: 'Cand B',
         email: `m5-b-${stamp}@example.com`,
-        mobile: `017${stamp}2`.slice(0, 14),
+        mobile: `061${mobileBase}`,
         passportNo: `P${stamp}B`,
         agentId: 999999n,
         classGroupId: passGroup.sourceLegacyId,
