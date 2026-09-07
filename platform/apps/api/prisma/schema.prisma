@@ -4,7 +4,8 @@
 // M1 foundation + M2 IAM/audit + M3 candidate master + M4 profile children
 // + M4 recruitment (partner masters, user bindings, employer_candidates)
 // + M5 training/exam (teachers, class groups, schedules, exams, results, manpower)
-// + M6 overseas processing (medical, police, ARC, labour, visa, flight, licenses, live_status).
+// + M6 overseas processing (medical, police, ARC, labour, visa, flight, licenses, live_status)
+// + M7 System A finance (wallets, payment requests, journals, FX rates, reconstruction/quarantine).
 // Sequence candidate.candidate_code_seq allocates new fallback codes (9######).
 // Later business models are added only in approved milestones.
 //
@@ -26,7 +27,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["audit", "candidate", "iam", "migration", "operations", "partners", "workflow"]
+  schemas  = ["audit", "candidate", "finance", "iam", "migration", "operations", "partners", "workflow"]
 }
 
 enum AccountStatus {
@@ -285,6 +286,7 @@ model Candidate {
   labourContracts   LabourContract[]
   visaImmigrations  VisaImmigration[]
   flightSchedules   FlightSchedule[]
+  paymentRequests   PaymentRequest[]
 
   @@unique([email])
   @@unique([mobile])
@@ -510,6 +512,7 @@ model Agent {
 
   subAgents  SubAgent[]
   boundUsers User[]
+  wallets    Wallet[]
 
   @@index([status])
   @@index([name])
@@ -535,6 +538,7 @@ model SubAgent {
 
   agent      Agent   @relation(fields: [agentId], references: [id], onDelete: Restrict)
   boundUsers User[]
+  wallets    Wallet[]
 
   @@index([agentId])
   @@index([status])
@@ -681,6 +685,7 @@ model Teacher {
 
   boundUsers User[]
   schedules  ClassSchedule[]
+  wallets    Wallet[]
 
   @@index([status])
   @@index([name])
@@ -1030,4 +1035,379 @@ model LiveStatusLookup {
   @@unique([stepNo])
   @@map("live_status")
   @@schema("operations")
+}
+
+// ============================================================
+// M7 — System A finance
+// Wallets, payment requests, append-only journals, administrative FX,
+// reconstruction/quarantine/recon tooling. No M8 invoices/tickets.
+// No production import. Agent/sub-agent cache columns remain opaque.
+// ============================================================
+
+enum WalletOwnerType {
+  AGENT
+  SUB_AGENT
+  TEACHER
+
+  @@schema("finance")
+}
+
+enum JournalStatus {
+  POSTED
+  REVERSED
+
+  @@schema("finance")
+}
+
+enum JournalEntryType {
+  WALLET_DEPOSIT
+  FEE_APPROVAL
+  FEE_REJECTION_ZERO
+  OPENING_BALANCE
+  REVERSAL
+
+  @@schema("finance")
+}
+
+enum JournalSide {
+  DEBIT
+  CREDIT
+
+  @@schema("finance")
+}
+
+enum AccountType {
+  WALLET_LIABILITY
+  DEPOSIT_CLEARING
+  FEE_INCOME
+  OPENING_EQUITY
+  REVERSAL_CLEARING
+
+  @@schema("finance")
+}
+
+enum OpeningBatchStatus {
+  STAGED
+  APPROVED
+  REJECTED
+
+  @@schema("finance")
+}
+
+enum QuarantineStatus {
+  OPEN
+  RESOLVED
+
+  @@schema("finance")
+}
+
+enum ReconciliationStatus {
+  RUNNING
+  PASSED
+  FAILED
+
+  @@schema("finance")
+}
+
+/// ISO master. Seeded BDT + EUR only.
+model Currency {
+  code      String   @id @db.VarChar(3)
+  name      String   @db.VarChar(40)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  accounts       WalletAccount[]
+  fxFrom         FxRateEntry[]          @relation("FxFrom")
+  fxTo           FxRateEntry[]          @relation("FxTo")
+  journalLines   JournalLine[]
+  reconstruction ReconstructionManifest[]
+  openingRows    OpeningManifest[]
+
+  @@map("currencies")
+  @@schema("finance")
+}
+
+/// Conceptual chart identities. Not statutory GL numbers (DR-G1).
+model FinanceAccount {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountType AccountType @unique @map("account_type")
+  name        String      @db.VarChar(120)
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  lines JournalLine[]
+
+  @@map("accounts")
+  @@schema("finance")
+}
+
+model Wallet {
+  id                    String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerType             WalletOwnerType @map("owner_type")
+  agentId               String?         @map("agent_id") @db.Uuid
+  subAgentId            String?         @map("sub_agent_id") @db.Uuid
+  teacherId             String?         @map("teacher_id") @db.Uuid
+  /// Ledger-derived display cache only. Never A01-10 / posting authority (DR-P1).
+  projectedAvailableEur Decimal?        @map("projected_available_eur") @db.Decimal(20, 6)
+  createdAt             DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  agent      Agent?          @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  subAgent   SubAgent?       @relation(fields: [subAgentId], references: [id], onDelete: Restrict)
+  teacher    Teacher?        @relation(fields: [teacherId], references: [id], onDelete: Restrict)
+  accounts   WalletAccount[]
+  requests   PaymentRequest[]
+  deposits   WalletDeposit[]
+  reconstruction ReconstructionManifest[]
+  openingRows    OpeningManifest[]
+
+  @@unique([ownerType, agentId])
+  @@unique([ownerType, subAgentId])
+  @@unique([ownerType, teacherId])
+  @@index([agentId])
+  @@index([subAgentId])
+  @@map("wallets")
+  @@schema("finance")
+}
+
+model WalletAccount {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  walletId     String   @map("wallet_id") @db.Uuid
+  currencyCode String   @map("currency_code") @db.VarChar(3)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  wallet   Wallet   @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  currency Currency @relation(fields: [currencyCode], references: [code], onDelete: Restrict)
+  lines    JournalLine[]
+
+  @@unique([walletId, currencyCode])
+  @@map("wallet_accounts")
+  @@schema("finance")
+}
+
+model JournalEntry {
+  id                   String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status               JournalStatus    @default(POSTED)
+  entryType            JournalEntryType @map("entry_type")
+  sourceType           String           @map("source_type") @db.VarChar(40)
+  sourceId             String           @map("source_id") @db.VarChar(64)
+  reference            String?          @db.VarChar(200)
+  postedAt             DateTime         @default(now()) @map("posted_at") @db.Timestamptz(6)
+  createdByUserId      String?          @map("created_by_user_id") @db.Uuid
+  approvedByUserId     String?          @map("approved_by_user_id") @db.Uuid
+  idempotencyKey       String           @unique @map("idempotency_key") @db.VarChar(160)
+  reversesJournalId    String?          @map("reverses_journal_id") @db.Uuid
+  reversedByJournalId  String?          @map("reversed_by_journal_id") @db.Uuid
+  correlationId        String?          @map("correlation_id") @db.VarChar(100)
+  paymentRequestId     String?          @map("payment_request_id") @db.Uuid
+  walletDepositId      String?          @map("wallet_deposit_id") @db.Uuid
+  fxRateEntryId        String?          @map("fx_rate_entry_id") @db.Uuid
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  reverses   JournalEntry?  @relation("JournalReversal", fields: [reversesJournalId], references: [id], onDelete: Restrict)
+  reversedBy JournalEntry[] @relation("JournalReversal")
+  lines            JournalLine[]
+  paymentRequest   PaymentRequest? @relation(fields: [paymentRequestId], references: [id], onDelete: Restrict)
+  walletDeposit    WalletDeposit?  @relation(fields: [walletDepositId], references: [id], onDelete: Restrict)
+  fxRateEntry      FxRateEntry?    @relation(fields: [fxRateEntryId], references: [id], onDelete: Restrict)
+  reconstruction   ReconstructionManifest?
+  openingRows      OpeningManifest[]
+
+  @@index([entryType, postedAt])
+  @@index([sourceType, sourceId])
+  @@index([paymentRequestId])
+  @@map("journal_entries")
+  @@schema("finance")
+}
+
+model JournalLine {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  journalId      String      @map("journal_id") @db.Uuid
+  lineNo         Int         @map("line_no")
+  accountType    AccountType @map("account_type")
+  accountId      String?     @map("account_id") @db.Uuid
+  walletAccountId String?    @map("wallet_account_id") @db.Uuid
+  side           JournalSide
+  currencyCode   String      @map("currency_code") @db.VarChar(3)
+  amount         Decimal     @db.Decimal(20, 6)
+  fxRate         Decimal     @map("fx_rate") @db.Decimal(20, 8)
+  baseAmount     Decimal     @map("base_amount") @db.Decimal(20, 6)
+  fxDirection    String      @map("fx_direction") @db.VarChar(40)
+  billTypeCode   String?     @map("bill_type_code") @db.VarChar(40)
+  billTitle      String?     @map("bill_title") @db.VarChar(120)
+  sourceType     String?     @map("source_type") @db.VarChar(40)
+  sourceId       String?     @map("source_id") @db.VarChar(64)
+
+  journal       JournalEntry  @relation(fields: [journalId], references: [id], onDelete: Restrict)
+  account       FinanceAccount? @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  walletAccount WalletAccount?  @relation(fields: [walletAccountId], references: [id], onDelete: Restrict)
+  currency      Currency        @relation(fields: [currencyCode], references: [code], onDelete: Restrict)
+
+  @@unique([journalId, lineNo])
+  @@index([walletAccountId])
+  @@map("journal_lines")
+  @@schema("finance")
+}
+
+model PaymentRequest {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status          String    @default("P") @db.VarChar(1)
+  candidateId     String?   @map("candidate_id") @db.Uuid
+  walletId        String    @map("wallet_id") @db.Uuid
+  amount          Decimal   @db.Decimal(20, 6)
+  billTitle       String    @map("bill_title") @db.VarChar(120)
+  billTypeCode    String?   @map("bill_type_code") @db.VarChar(40)
+  /// Lineage only (A02-06). Never a posting key.
+  legacyBillCode  Int?      @map("legacy_bill_code")
+  sourceLegacyId  BigInt?   @map("source_legacy_id")
+  sourceTable     String?   @map("source_table") @db.VarChar(80)
+  journalId       String?   @unique @map("journal_id") @db.Uuid
+  createdByUserId String?   @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  candidate Candidate?     @relation(fields: [candidateId], references: [id], onDelete: Restrict)
+  wallet    Wallet         @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  journals  JournalEntry[]
+
+  @@index([candidateId, status])
+  @@index([walletId, status])
+  @@index([billTitle, status])
+  @@map("payment_requests")
+  @@schema("finance")
+}
+
+model WalletDeposit {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status          String    @default("P") @db.VarChar(1)
+  walletId        String    @map("wallet_id") @db.Uuid
+  amount          Decimal   @db.Decimal(20, 6)
+  currencyCode    String    @map("currency_code") @db.VarChar(3)
+  fxRate          Decimal?  @map("fx_rate") @db.Decimal(20, 8)
+  fxRateEntryId   String?   @map("fx_rate_entry_id") @db.Uuid
+  journalId       String?   @unique @map("journal_id") @db.Uuid
+  sourceLegacyId  BigInt?   @map("source_legacy_id")
+  createdByUserId String?   @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  wallet      Wallet         @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  fxRateEntry FxRateEntry?   @relation(fields: [fxRateEntryId], references: [id], onDelete: Restrict)
+  journals    JournalEntry[]
+
+  @@index([walletId, status])
+  @@map("wallet_deposits")
+  @@schema("finance")
+}
+
+/// Administrative new-post R (DR-FX1). Not historical authority.
+model FxRateEntry {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fromCurrency   String   @map("from_currency") @db.VarChar(3)
+  toCurrency     String   @map("to_currency") @db.VarChar(3)
+  rate           Decimal  @db.Decimal(20, 8)
+  effectiveAt    DateTime @map("effective_at") @db.Timestamptz(6)
+  enteredByUserId String  @map("entered_by_user_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  from Currency @relation("FxFrom", fields: [fromCurrency], references: [code], onDelete: Restrict)
+  to   Currency @relation("FxTo", fields: [toCurrency], references: [code], onDelete: Restrict)
+  journals JournalEntry[]
+  deposits WalletDeposit[]
+
+  @@index([fromCurrency, toCurrency, effectiveAt])
+  @@map("fx_rate_entries")
+  @@schema("finance")
+}
+
+model OpeningBalanceBatch {
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status          OpeningBatchStatus @default(STAGED)
+  migrationRunId  String             @map("migration_run_id") @db.VarChar(100)
+  approvedByUserId String?           @map("approved_by_user_id") @db.Uuid
+  approvedAt      DateTime?          @map("approved_at") @db.Timestamptz(6)
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  rows OpeningManifest[]
+
+  @@index([migrationRunId])
+  @@map("opening_balance_batches")
+  @@schema("finance")
+}
+
+model OpeningManifest {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batchId            String   @map("batch_id") @db.Uuid
+  sourcePaymentId    String?  @map("source_payment_id") @db.VarChar(64)
+  sourceTable        String?  @map("source_table") @db.VarChar(80)
+  sourceHash         String?  @map("source_hash") @db.VarChar(128)
+  migrationRunId     String   @map("migration_run_id") @db.VarChar(100)
+  walletId           String   @map("wallet_id") @db.Uuid
+  currencyCode       String   @map("currency_code") @db.VarChar(3)
+  sourceAmount       Decimal  @map("source_amount") @db.Decimal(20, 6)
+  sourceExchangeRate Decimal  @map("source_exchange_rate") @db.Decimal(20, 8)
+  journalId          String?  @map("journal_id") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  batch    OpeningBalanceBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  wallet   Wallet              @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  currency Currency            @relation(fields: [currencyCode], references: [code], onDelete: Restrict)
+  journal  JournalEntry?       @relation(fields: [journalId], references: [id], onDelete: Restrict)
+
+  @@index([sourcePaymentId])
+  @@index([batchId])
+  @@map("opening_manifests")
+  @@schema("finance")
+}
+
+model ReconstructionManifest {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourcePaymentId    String   @unique @map("source_payment_id") @db.VarChar(64)
+  sourceTable        String   @map("source_table") @db.VarChar(80)
+  sourceHash         String   @map("source_hash") @db.VarChar(128)
+  migrationRunId     String   @map("migration_run_id") @db.VarChar(100)
+  walletId           String   @map("wallet_id") @db.Uuid
+  currencyCode       String   @map("currency_code") @db.VarChar(3)
+  sourceAmount       Decimal  @map("source_amount") @db.Decimal(20, 6)
+  sourceExchangeRate Decimal  @map("source_exchange_rate") @db.Decimal(20, 8)
+  journalId          String   @unique @map("journal_id") @db.Uuid
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  wallet   Wallet       @relation(fields: [walletId], references: [id], onDelete: Restrict)
+  currency Currency     @relation(fields: [currencyCode], references: [code], onDelete: Restrict)
+  journal  JournalEntry @relation(fields: [journalId], references: [id], onDelete: Restrict)
+
+  @@index([migrationRunId])
+  @@map("reconstruction_manifests")
+  @@schema("finance")
+}
+
+model FinanceQuarantine {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceTable     String           @map("source_table") @db.VarChar(80)
+  sourcePk        String           @map("source_pk") @db.VarChar(64)
+  sourceHash      String?          @map("source_hash") @db.VarChar(128)
+  migrationRunId  String           @map("migration_run_id") @db.VarChar(100)
+  reason          String           @db.VarChar(80)
+  payload         Json?
+  reconciliationImpact String?     @map("reconciliation_impact") @db.VarChar(200)
+  status          QuarantineStatus @default(OPEN)
+  resolvedAt      DateTime?        @map("resolved_at") @db.Timestamptz(6)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([migrationRunId, status])
+  @@index([reason])
+  @@map("quarantine")
+  @@schema("finance")
+}
+
+model ReconciliationRun {
+  id             String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  migrationRunId String               @map("migration_run_id") @db.VarChar(100)
+  status         ReconciliationStatus @default(RUNNING)
+  gates          Json
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  completedAt    DateTime?            @map("completed_at") @db.Timestamptz(6)
+
+  @@index([migrationRunId])
+  @@map("reconciliation_runs")
+  @@schema("finance")
 }
