@@ -70,28 +70,21 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 M5 training integration', () =
     const roleByKey = new Map(roles.map((role) => [role.key, role]));
     const superAdmin = roleByKey.get('super_admin');
     if (!superAdmin) throw new Error('super_admin missing');
-    await Promise.all(
-      permissions.map((permission) =>
-        db.rolePermission.upsert({
-          where: { roleId_permissionId: { roleId: superAdmin.id, permissionId: permission.id } },
-          create: { roleId: superAdmin.id, permissionId: permission.id },
-          update: {},
-        })
-      )
-    );
+    await db.rolePermission.createMany({
+      data: permissions.map((permission) => ({ roleId: superAdmin.id, permissionId: permission.id })),
+      skipDuplicates: true,
+    });
+    const grantRows: Array<{ roleId: string; permissionId: string }> = [];
     for (const [roleKey, keys] of Object.entries(M5_ROLE_GRANTS)) {
       const role = roleByKey.get(roleKey);
       if (!role) throw new Error(`role ${roleKey} missing`);
       for (const key of keys) {
         const permission = permissionByKey.get(key);
         if (!permission) throw new Error(`permission ${key} missing`);
-        await db.rolePermission.upsert({
-          where: { roleId_permissionId: { roleId: role.id, permissionId: permission.id } },
-          create: { roleId: role.id, permissionId: permission.id },
-          update: {},
-        });
+        grantRows.push({ roleId: role.id, permissionId: permission.id });
       }
     }
+    await db.rolePermission.createMany({ data: grantRows, skipDuplicates: true });
 
     const stamp = `${Date.now()}`;
     const ownerUser = await db.user.create({

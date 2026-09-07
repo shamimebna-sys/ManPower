@@ -83,27 +83,19 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 security integration', () => {
       create: { key: 'agent', name: 'Agent' },
       update: {},
     });
-    await Promise.all(
-      permissions.map((permission) =>
-        db.rolePermission.upsert({
-          where: {
-            roleId_permissionId: { roleId: superAdmin.id, permissionId: permission.id },
-          },
-          create: { roleId: superAdmin.id, permissionId: permission.id },
-          update: {},
-        })
-      )
-    );
+    await db.rolePermission.createMany({
+      data: permissions.map((permission) => ({ roleId: superAdmin.id, permissionId: permission.id })),
+      skipDuplicates: true,
+    });
     // Viewer has an isolated role with no grants. Do not strip the shared
     // employee role — that races M6/M7 suites on the same CI database.
     const read = permissions.find((permission) => permission.key === 'candidate.read');
     if (!read) {
       throw new Error('Required candidate permissions are missing');
     }
-    await db.rolePermission.upsert({
-      where: { roleId_permissionId: { roleId: agent.id, permissionId: read.id } },
-      create: { roleId: agent.id, permissionId: read.id },
-      update: {},
+    await db.rolePermission.createMany({
+      data: [{ roleId: agent.id, permissionId: read.id }],
+      skipDuplicates: true,
     });
 
     const adminUser = await db.user.upsert({

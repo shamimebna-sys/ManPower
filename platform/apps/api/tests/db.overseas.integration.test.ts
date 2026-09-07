@@ -71,16 +71,11 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 M6 overseas integration', () =
     const roleByKey = new Map(roles.map((role) => [role.key, role]));
     const superAdmin = roleByKey.get('super_admin');
     if (!superAdmin) throw new Error('super_admin missing');
-    await Promise.all(
-      permissions.map((permission) =>
-        db.rolePermission.upsert({
-          where: { roleId_permissionId: { roleId: superAdmin.id, permissionId: permission.id } },
-          create: { roleId: superAdmin.id, permissionId: permission.id },
-          update: {},
-        })
-      )
-    );
-    const grantUpserts: Array<ReturnType<typeof db.rolePermission.upsert>> = [];
+    await db.rolePermission.createMany({
+      data: permissions.map((permission) => ({ roleId: superAdmin.id, permissionId: permission.id })),
+      skipDuplicates: true,
+    });
+    const grantRows: Array<{ roleId: string; permissionId: string }> = [];
     for (const grants of [M4_ROLE_GRANTS, M6_ROLE_GRANTS]) {
       for (const [roleKey, keys] of Object.entries(grants)) {
         const role = roleByKey.get(roleKey);
@@ -88,17 +83,11 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 M6 overseas integration', () =
         for (const key of keys) {
           const permission = permissionByKey.get(key);
           if (!permission) throw new Error(`permission ${key} missing`);
-          grantUpserts.push(
-            db.rolePermission.upsert({
-              where: { roleId_permissionId: { roleId: role.id, permissionId: permission.id } },
-              create: { roleId: role.id, permissionId: permission.id },
-              update: {},
-            })
-          );
+          grantRows.push({ roleId: role.id, permissionId: permission.id });
         }
       }
     }
-    await Promise.all(grantUpserts);
+    await db.rolePermission.createMany({ data: grantRows, skipDuplicates: true });
 
     const stamp = `${Date.now()}`;
     const agentMaster = await db.agent.create({ data: { name: 'M6 Agent', sourceLegacyId: BigInt(`${stamp}1`) } });
