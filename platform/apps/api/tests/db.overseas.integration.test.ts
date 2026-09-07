@@ -429,11 +429,16 @@ describe.skipIf(!runDatabaseTests)('PostgreSQL 16 M6 overseas integration', () =
     const candidate = await db.candidate.findUniqueOrThrow({ where: { id: candidateAId } });
     expect(candidate.admissionPaymentId).toBe(paymentFkBefore.admission);
     expect(candidate.medicalFeePaymentId).toBe(paymentFkBefore.medical);
-    const financeTables = await db.$queryRaw<Array<{ table_name: string }>>`
-      SELECT table_name FROM information_schema.tables
-      WHERE table_name IN ('payment_requests', 'payments', 'invoices', 'wallets', 'ledgers')
+    const financeTables = await db.$queryRaw<Array<{ table_schema: string; table_name: string }>>`
+      SELECT table_schema, table_name FROM information_schema.tables
+      WHERE table_name IN ('invoices', 'ledgers', 'ticket_invoices', 'ticket_receipts')
     `;
     expect(financeTables).toEqual([]);
+    const systemA = await db.$queryRaw<Array<{ table_schema: string }>>`
+      SELECT table_schema FROM information_schema.tables
+      WHERE table_name IN ('payment_requests', 'wallets')
+    `;
+    expect(systemA.every((row) => row.table_schema === 'finance')).toBe(true);
   });
 
   it('accepts a legacy_key_map row without importing production data', async () => {
